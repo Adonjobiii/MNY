@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, WalletCards, LineChart, Target, User } from 'lucide-react';
+import { LayoutDashboard, WalletCards, LineChart, Target, User, TrendingUp } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
   { path: '/transactions', icon: WalletCards, label: 'Accounts' },
-  { path: '/analytics', icon: LineChart, label: 'Analytics' },
-  { path: '/goals', icon: Target, label: 'Goals' },
-  { path: '/settings', icon: User, label: 'Profile' }
+  { path: '/investments', icon: TrendingUp, label: 'Investments' },
+  { path: '/goals', icon: Target, label: 'Goals' }
 ];
 
 const BottomNav = () => {
@@ -42,7 +41,7 @@ const BottomNav = () => {
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className="fixed bottom-4 left-4 right-4 z-40 md:hidden"
         >
-          <div className="glass-panel bg-[var(--background)]/80 backdrop-blur-xl border border-[var(--border)] rounded-[2rem] px-6 py-4 flex justify-between items-center shadow-2xl shadow-blue-900/10 dark:shadow-black/50">
+          <div className="glass-panel bg-[var(--background)]/80 backdrop-blur-xl border border-[var(--border)] rounded-[2rem] pl-6 pr-24 py-4 flex justify-between items-center shadow-2xl shadow-blue-900/10 dark:shadow-black/50">
             {NAV_ITEMS.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;

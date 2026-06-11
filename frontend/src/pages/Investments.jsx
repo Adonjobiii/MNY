@@ -122,6 +122,7 @@ export default function Investments() {
                 <option value="FD">FD</option>
                 <option value="STOCK">STOCK</option>
                 <option value="GOLD">GOLD</option>
+                <option value="CASH">CASH</option>
               </select>
             </div>
 
@@ -176,6 +177,7 @@ export default function Investments() {
                   inv.type === 'SIP' ? 'bg-blue-500/20 text-blue-500' :
                   inv.type === 'FD' ? 'bg-green-500/20 text-green-500' :
                   inv.type === 'STOCK' ? 'bg-purple-500/20 text-purple-500' :
+                  inv.type === 'CASH' ? 'bg-emerald-500/20 text-emerald-500' :
                   'bg-yellow-500/20 text-yellow-500'
                 }`}>
                   {inv.type}
