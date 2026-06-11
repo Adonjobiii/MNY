@@ -24,6 +24,7 @@ app.use(express.json());
 // AUTHENTICATION MIDDLEWARE
 // ==========================================
 app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.path} from ${req.ip} | Capacitor: ${req.headers['x-is-capacitor']}`);
   const masterPassword = process.env.APP_PASSWORD;
   // If no password is set in .env, allow all access (for local dev)
   if (!masterPassword) return next();
@@ -33,6 +34,9 @@ app.use((req, res, next) => {
 
   // Exclude the /api/auth check endpoint so frontend can verify password
   if (req.path === '/api/auth') return next();
+
+  // Bypass for the Android (Capacitor) app
+  if (req.headers['x-is-capacitor'] === 'true') return next();
 
   const clientPassword = req.headers['x-app-password'];
   if (clientPassword !== masterPassword) {

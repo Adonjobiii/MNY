@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { 
   LayoutDashboard, CreditCard, PieChart, Target, TrendingUp, FileText, Sparkles, Settings,
   Moon, Sun, Bell, Search, Plus, Briefcase
@@ -29,7 +30,8 @@ window.fetch = async (...args) => {
   config = config || {};
   config.headers = {
     ...config.headers,
-    'x-app-password': password
+    'x-app-password': password,
+    'x-is-capacitor': Capacitor.isNativePlatform() ? 'true' : 'false'
   };
   return originalFetch(resource, config);
 };
@@ -139,7 +141,7 @@ export default function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // Check if auth is required
+    // Check if auth is required (Web and Mobile)
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

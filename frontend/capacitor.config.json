@@ -1,0 +1,14 @@
+{
+  "appId": "com.mny.app",
+  "appName": "MNY",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true
+    }
+  }
+}
