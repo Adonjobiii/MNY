@@ -210,7 +210,18 @@ export default function Transactions() {
       body: JSON.stringify(newTx)
     })
     .then(res => res.json())
-    .then(() => {
+    .then((savedTx) => {
+      // Update local state immediately with the saved data
+      setTransactions(prev => {
+        if (editId) {
+          return prev.map(t => t.id === editId ? savedTx : t);
+        } else {
+          // Prevent duplicates if socket already added it
+          if (prev.find(t => t.id === savedTx.id)) return prev;
+          return [savedTx, ...prev];
+        }
+      });
+
       // Budget Reminder Logic for Needs
       if (txType === 'Expense' && ['Housing & Rent', 'Food & Dining', 'Utilities', 'Healthcare'].includes(finalCategory)) {
         const currentMonth = new Date(txDate).getMonth();
