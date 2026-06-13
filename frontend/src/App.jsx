@@ -22,7 +22,7 @@ import BottomNav from './components/mobile/BottomNav';
 import FAB from './components/mobile/FAB';
 import LockScreen from './components/LockScreen';
 
-// Set up global fetch interceptor for auth headers
+// Set up global fetch interceptor for auth headers and cache busting
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   let [resource, config] = args;
@@ -33,6 +33,14 @@ window.fetch = async (...args) => {
     'x-app-password': password,
     'x-is-capacitor': Capacitor.isNativePlatform() ? 'true' : 'false'
   };
+
+  // Cache busting for all GET requests to prevent stale data
+  if ((!config.method || config.method.toUpperCase() === 'GET') && typeof resource === 'string' && resource.includes('/api/')) {
+    config.cache = 'no-store';
+    const separator = resource.includes('?') ? '&' : '?';
+    resource = `${resource}${separator}_t=${Date.now()}`;
+  }
+
   return originalFetch(resource, config);
 };
 
