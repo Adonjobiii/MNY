@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Edit2, Trash2, X, Wallet, AlertCircle, DollarSign, Building2 } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Edit2, Trash2, X, Wallet, AlertCircle, DollarSign, Building2, CloudOff } from 'lucide-react';
 
 const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
 
@@ -596,7 +596,10 @@ export default function Transactions() {
                         {tx.type === 'Income' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                       </div>
                       <div>
-                        <div className="font-medium">{tx.description.replace(' [PLANNED]', '')}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          {tx.description.replace(' [PLANNED]', '')}
+                          {tx._offline && <span title="Pending sync"><CloudOff size={14} className="text-orange-500 animate-pulse" /></span>}
+                        </div>
                         <div className="text-xs flex gap-2">
                           <span className="opacity-50">{tx.type}</span>
                           {tx.description.includes('[PLANNED]') && (

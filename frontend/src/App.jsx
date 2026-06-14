@@ -22,7 +22,42 @@ import BottomNav from './components/mobile/BottomNav';
 import FAB from './components/mobile/FAB';
 import LockScreen from './components/LockScreen';
 
-// Set up global fetch interceptor for auth headers and cache busting
+// Offline queue management
+const OFFLINE_SYNC_QUEUE = 'OFFLINE_SYNC_QUEUE';
+
+export const syncOfflineQueue = async () => {
+  const queue = JSON.parse(localStorage.getItem(OFFLINE_SYNC_QUEUE) || '[]');
+  if (queue.length === 0) return;
+
+  console.log(`[Offline Sync] Attempting to sync ${queue.length} pending requests...`);
+  const remainingQueue = [];
+
+  for (const req of queue) {
+    try {
+      const res = await originalFetch(req.resource, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body
+      });
+      if (!res.ok) {
+        console.error('[Offline Sync] Request failed with status', res.status);
+        remainingQueue.push(req);
+      }
+    } catch (err) {
+      console.error('[Offline Sync] Network still down', err);
+      remainingQueue.push(req);
+    }
+  }
+
+  if (remainingQueue.length !== queue.length) {
+    localStorage.setItem(OFFLINE_SYNC_QUEUE, JSON.stringify(remainingQueue));
+    window.dispatchEvent(new Event('offline-sync-complete'));
+  }
+};
+
+window.addEventListener('online', syncOfflineQueue);
+
+// Set up global fetch interceptor for auth headers, cache busting, and offline syncing
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   let [resource, config] = args;
@@ -34,14 +69,42 @@ window.fetch = async (...args) => {
     'x-is-capacitor': Capacitor.isNativePlatform() ? 'true' : 'false'
   };
 
+  const isGet = (!config.method || config.method.toUpperCase() === 'GET');
+
   // Cache busting for all GET requests to prevent stale data
-  if ((!config.method || config.method.toUpperCase() === 'GET') && typeof resource === 'string' && resource.includes('/api/')) {
+  if (isGet && typeof resource === 'string' && resource.includes('/api/')) {
     config.cache = 'no-store';
     const separator = resource.includes('?') ? '&' : '?';
     resource = `${resource}${separator}_t=${Date.now()}`;
   }
 
-  return originalFetch(resource, config);
+  try {
+    const response = await originalFetch(resource, config);
+    return response;
+  } catch (error) {
+    // If it's a network error and not a GET request, queue it for offline sync
+    if (!isGet && typeof resource === 'string' && resource.includes('/api/')) {
+      console.warn('[Offline Sync] Network error, queuing request:', resource);
+      const queue = JSON.parse(localStorage.getItem(OFFLINE_SYNC_QUEUE) || '[]');
+      queue.push({
+        resource,
+        method: config.method,
+        headers: config.headers,
+        body: config.body
+      });
+      localStorage.setItem(OFFLINE_SYNC_QUEUE, JSON.stringify(queue));
+
+      // Return a fake successful JSON response so UI optimistic updates work smoothly
+      const fakeData = config.body ? JSON.parse(config.body) : {};
+      fakeData._offline = true; 
+      
+      return new Response(JSON.stringify(fakeData), {
+        status: 201, // Created/OK
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    throw error;
+  }
 };
 
 function Sidebar() {
@@ -163,13 +226,17 @@ export default function App() {
         setIsLocked(true);
       }
     })
-    .catch(err => {
-      console.error('Failed to check auth', err);
-      // Fail open if server is down? No, fail closed.
-      setIsLocked(true);
-    })
-    .finally(() => setIsCheckingAuth(false));
-  }, []);
+      .catch(err => {
+        console.error('Failed to check auth', err);
+        // Fail open if server is down? No, fail closed.
+        setIsLocked(true);
+      })
+      .finally(() => {
+        setIsCheckingAuth(false);
+        // Try to sync any offline transactions when the app loads
+        syncOfflineQueue();
+      });
+    }, []);
 
   useEffect(() => {
     if (isDark) {
