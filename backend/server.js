@@ -302,85 +302,82 @@ getDbConnection().then(database => {
   // CRON JOBS FOR AUTOMATED TRANSACTIONS
   // ==========================================
   async function processAutomatedTransaction(txDetails) {
-    const { date, type, dueAction, dueCurrency, includeInBalance, category, description, toWhom, mode, amount, status } = txDetails;
-    
-    try {
-      // Idempotency Check: Don't add if already exists for this exact date and description
-      const existing = await db.get(
-        'SELECT id FROM transactions WHERE date = $1 AND description = $2',
-        [date, description]
-      );
-
-      if (existing) {
-        console.log(`[CRON] Transaction already exists: ${description} on ${date}`);
-        return;
+      const { date, type, dueAction, dueCurrency, includeInBalance, category, description, toWhom, mode, amount, status } = txDetails;
+      
+      try {
+        // Idempotency Check: Don't add if already exists for this exact date and description
+        const existing = await db.get(
+          'SELECT id FROM transactions WHERE date = $1 AND description = $2',
+          [date, description]
+        );
+  
+        if (existing) {
+          return; // Silently skip if already added
+        }
+  
+        const result = await db.run(
+          'INSERT INTO transactions (date, type, "dueAction", "dueCurrency", "includeInBalance", category, description, "toWhom", mode, amount, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
+          [date, type, dueAction || null, dueCurrency || null, includeInBalance ? true : false, category, description, toWhom || null, mode, amount, status || 'Completed']
+        );
+  
+        const newTx = {
+          id: result.lastID,
+          date, type, dueAction, dueCurrency, includeInBalance: includeInBalance ? true : false, category, description, toWhom, mode, amount, status: status || 'Completed'
+        };
+  
+        io.emit('transaction_added', newTx);
+        console.log(`[AUTOMATED] Successfully processed: ${description} on ${date}`);
+      } catch (error) {
+        console.error(`[AUTOMATED] Failed to process ${description}:`, error);
       }
-
-      const result = await db.run(
-        'INSERT INTO transactions (date, type, "dueAction", "dueCurrency", "includeInBalance", category, description, "toWhom", mode, amount, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id',
-        [date, type, dueAction || null, dueCurrency || null, includeInBalance ? true : false, category, description, toWhom || null, mode, amount, status || 'Completed']
-      );
-
-      const newTx = {
-        id: result.lastID,
-        date, type, dueAction, dueCurrency, includeInBalance: includeInBalance ? true : false, category, description, toWhom, mode, amount, status: status || 'Completed'
+    }
+  
+    const runAutomatedChecks = async () => {
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
+      const currentDay = today.getDate();
+      
+      console.log(`[AUTOMATED] Running checks up to day: ${currentDay}`);
+  
+      const checkAndRunRule = async (targetDay, txDetailsFn) => {
+        if (currentDay < targetDay) return; // Haven't reached this day yet in the current month
+        
+        const targetDate = new Date(currentYear, currentMonth, targetDay);
+        targetDate.setMinutes(targetDate.getMinutes() - targetDate.getTimezoneOffset());
+        const dateStr = targetDate.toISOString().split('T')[0];
+        const monthName = targetDate.toLocaleString('default', { month: 'long' });
+  
+        await processAutomatedTransaction(txDetailsFn(dateStr, monthName, targetDay));
       };
-
-      io.emit('transaction_added', newTx);
-      console.log(`[CRON] Successfully processed: ${description} on ${date}`);
-    } catch (error) {
-      console.error(`[CRON] Failed to process ${description}:`, error);
-    }
-  }
-
-  // Run every day at 01:00 AM
-  cron.schedule('0 1 * * *', () => {
-    const today = new Date();
-    const day = today.getDate();
-    const currentDateStr = today.toISOString().split('T')[0];
-    const monthName = today.toLocaleString('default', { month: 'long' });
-
-    console.log(`[CRON] Running daily checks for day: ${day}`);
-
-    // Rule 1: ICICI Bank 1000 rupees SIP on 5th, 15th, 25th
-    if ([5, 15, 25].includes(day)) {
-      processAutomatedTransaction({
-        date: currentDateStr,
-        type: 'Expense',
-        category: 'SIP',
-        description: `Automated SIP Deduction - ${monthName} ${day}`,
-        mode: 'ICICI Bank',
-        amount: 1000,
-        status: 'Completed'
-      });
-    }
-
-    // Rule 2: South Indian Bank 228 rupees Pension on 1st
-    if (day === 1) {
-      processAutomatedTransaction({
-        date: currentDateStr,
-        type: 'Expense',
-        category: 'Pension',
-        description: `Automated Pension Deduction - ${monthName} ${day}`,
-        mode: 'South Indian Bank',
-        amount: 228,
-        status: 'Completed'
-      });
-    }
-
-    // Rule 3: ICICI Bank 299 rupees YouTube Premium on 26th
-    if (day === 26) {
-      processAutomatedTransaction({
-        date: currentDateStr,
-        type: 'Expense',
-        category: 'Subscriptions',
-        description: `Automated YouTube Premium - ${monthName} ${day}`,
-        mode: 'ICICI Bank',
-        amount: 299,
-        status: 'Completed'
-      });
-    }
-  });
+  
+      // Rule 1: ICICI Bank 1000 rupees SIP on 5th, 15th, 25th
+      await checkAndRunRule(5, (dateStr, monthName, day) => ({
+        date: dateStr, type: 'Expense', category: 'SIP', description: `Automated SIP Deduction - ${monthName} ${day}`, mode: 'ICICI Bank', amount: 1000, status: 'Completed'
+      }));
+      await checkAndRunRule(15, (dateStr, monthName, day) => ({
+        date: dateStr, type: 'Expense', category: 'SIP', description: `Automated SIP Deduction - ${monthName} ${day}`, mode: 'ICICI Bank', amount: 1000, status: 'Completed'
+      }));
+      await checkAndRunRule(25, (dateStr, monthName, day) => ({
+        date: dateStr, type: 'Expense', category: 'SIP', description: `Automated SIP Deduction - ${monthName} ${day}`, mode: 'ICICI Bank', amount: 1000, status: 'Completed'
+      }));
+  
+      // Rule 2: South Indian Bank 228 rupees Pension on 1st
+      await checkAndRunRule(1, (dateStr, monthName, day) => ({
+        date: dateStr, type: 'Expense', category: 'Pension', description: `Automated Pension Deduction - ${monthName} ${day}`, mode: 'South Indian Bank', amount: 228, status: 'Completed'
+      }));
+  
+      // Rule 3: ICICI Bank 299 rupees YouTube Premium on 26th
+      await checkAndRunRule(26, (dateStr, monthName, day) => ({
+        date: dateStr, type: 'Expense', category: 'Subscriptions', description: `Automated YouTube Premium - ${monthName} ${day}`, mode: 'ICICI Bank', amount: 299, status: 'Completed'
+      }));
+    };
+  
+    // Run automatically when the server wakes up / starts
+    setTimeout(runAutomatedChecks, 2000);
+  
+    // Keep the daily cron in case the server stays awake 24/7
+    cron.schedule('0 1 * * *', runAutomatedChecks);
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
