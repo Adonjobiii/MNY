@@ -343,6 +343,12 @@ getDbConnection().then(database => {
       const checkAndRunRule = async (targetDay, txDetailsFn) => {
         if (currentDay < targetDay) return; // Haven't reached this day yet in the current month
         
+        // Skip automated deductions before the 15th for June 2026 (month 5)
+        if (currentYear === 2026 && currentMonth === 5 && targetDay < 15) {
+          console.log(`[AUTOMATED] Skipping transaction for day ${targetDay} in June 2026 as requested.`);
+          return;
+        }
+
         const targetDate = new Date(currentYear, currentMonth, targetDay);
         targetDate.setMinutes(targetDate.getMinutes() - targetDate.getTimezoneOffset());
         const dateStr = targetDate.toISOString().split('T')[0];
