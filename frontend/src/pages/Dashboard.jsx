@@ -71,6 +71,7 @@ export default function Dashboard() {
   const filteredTransactions = transactions.filter(tx => {
     if (selectedAccount === 'all') return true;
     if (selectedAccount === 'total_dues') return tx.type === 'Dues';
+    if (selectedAccount === 'total_debt') return tx.type === 'Debt';
     if (selectedAccount === 'total_cash') return tx.mode === 'Cash (Rupees)' || tx.mode === 'Cash (Qatar Riyal)';
     const accDef = accounts.find(a => a.id === selectedAccount);
     return accDef ? (tx.mode === accDef.name || tx.mode === `UPI (${accDef.name})`) : false;
@@ -100,13 +101,19 @@ export default function Dashboard() {
       }, 0);
   };
 
+  const getDebtBalance = (currency) => {
+    return transactions
+      .filter(tx => tx.type === 'Debt' && (currency === 'QAR' ? isQAR(tx) : !isQAR(tx)))
+      .reduce((acc, tx) => acc + tx.amount, 0);
+  };
+
   const isQAR = (tx) => tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR';
 
   const totalIncomeINR = filteredTransactions.filter(t => t.type === 'Income' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
   const totalExpensesINR = filteredTransactions.filter(t => t.type === 'Expense' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
-    if (tx.type === 'Expense') return acc - tx.amount;
+    if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
     if (tx.type === 'Dues' && tx.includeInBalance) {
       if (tx.dueAction === 'add') return acc + tx.amount;
       if (tx.dueAction === 'settle') return acc - tx.amount;
@@ -118,7 +125,7 @@ export default function Dashboard() {
   const totalExpensesQAR = filteredTransactions.filter(t => t.type === 'Expense' && isQAR(t)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
-    if (tx.type === 'Expense') return acc - tx.amount;
+    if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
     if (tx.type === 'Dues' && tx.includeInBalance) {
       if (tx.dueAction === 'add') return acc + tx.amount;
       if (tx.dueAction === 'settle') return acc - tx.amount;
@@ -134,8 +141,8 @@ export default function Dashboard() {
     : ['cash_qar', 'qatar_bank'].includes(selectedAccount) ? 'QAR' 
     : displayCurrency;
 
-  const showINR = ['all', 'icici', 'sib', 'cash_inr', 'total_dues', 'total_cash'].includes(selectedAccount);
-  const showQAR = ['all', 'cash_qar', 'qatar_bank', 'total_dues', 'total_cash'].includes(selectedAccount);
+  const showINR = ['all', 'icici', 'sib', 'cash_inr', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
+  const showQAR = ['all', 'cash_qar', 'qatar_bank', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
 
   const displayTransactions = filteredTransactions.filter(t => 
     activeDisplayCurrency === 'QAR' ? isQAR(t) : !isQAR(t)
@@ -227,6 +234,13 @@ export default function Dashboard() {
                   >
                     <AlertCircle size={16} />
                     Total Dues: ₹{getDuesBalance('INR').toLocaleString()} | QAR {getDuesBalance('QAR').toLocaleString()}
+                  </button>
+                  <button 
+                    onClick={() => setSelectedAccount('total_debt')}
+                    className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all whitespace-nowrap text-sm font-bold border ${selectedAccount === 'total_debt' ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'border-indigo-500/30 bg-indigo-500/5 text-indigo-500 shadow-lg shadow-indigo-500/10'}`}
+                  >
+                    <AlertCircle size={16} />
+                    Total Debt: ₹{getDebtBalance('INR').toLocaleString()} | QAR {getDebtBalance('QAR').toLocaleString()}
                   </button>
                   <button 
                     onClick={() => setSelectedAccount('total_cash')}

@@ -326,6 +326,8 @@ export default function Transactions() {
     if (activeAccount !== 'all') {
       if (activeAccount === 'total_dues') {
         matchAccount = tx.type === 'Dues';
+      } else if (activeAccount === 'total_debt') {
+        matchAccount = tx.type === 'Debt';
       } else if (activeAccount === 'total_cash') {
         matchAccount = tx.mode === 'Cash (Rupees)' || tx.mode === 'Cash (Qatar Riyal)';
       } else {
@@ -372,6 +374,12 @@ export default function Transactions() {
       }, 0);
   };
 
+  const getDebtBalance = (currency) => {
+    return transactions
+      .filter(tx => tx.type === 'Debt' && (currency === 'QAR' ? (tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR') : !(tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR')))
+      .reduce((acc, tx) => acc + tx.amount, 0);
+  };
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
@@ -407,6 +415,23 @@ export default function Transactions() {
                 <span>₹{getDuesBalance('INR').toLocaleString()}</span>
                 <span className="opacity-50">|</span>
                 <span>QAR {getDuesBalance('QAR').toLocaleString()}</span>
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setActiveAccount('total_debt')}
+            className={`px-4 py-2 rounded-2xl flex items-center gap-3 shrink-0 border transition-all whitespace-nowrap text-left ${activeAccount === 'total_debt' ? 'glass border-indigo-500 shadow-md shadow-indigo-500/20' : 'bg-indigo-500/5 border-indigo-500/30 opacity-80 hover:opacity-100'}`}
+          >
+            <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center overflow-hidden border border-indigo-500/20 shrink-0">
+              <AlertCircle size={16} className="text-indigo-500" />
+            </div>
+            <div>
+              <div className="text-xs opacity-60 font-medium text-indigo-500">Total Debt</div>
+              <div className="font-bold text-indigo-500 flex gap-2">
+                <span>₹{getDebtBalance('INR').toLocaleString()}</span>
+                <span className="opacity-50">|</span>
+                <span>QAR {getDebtBalance('QAR').toLocaleString()}</span>
               </div>
             </div>
           </button>
