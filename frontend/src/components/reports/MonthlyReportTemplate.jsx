@@ -146,6 +146,26 @@ const IncomeExpenseAnalysis = ({ data }) => {
     amount: cat.amount
   })).slice(0, 5); // Top 5 for the chart
 
+  const PieCustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const pData = payload[0].payload;
+      const total = data.totalExpenses;
+      const percentage = total > 0 ? Math.round((pData.value / total) * 100) : 0;
+      
+      return (
+        <div className="bg-white border border-slate-100 p-3 rounded-xl shadow-xl text-slate-800">
+          <p className="font-bold flex items-center gap-2 text-sm">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: pData.payload.fill }}></span>
+            {pData.name}
+          </p>
+          <p className="text-sm mt-1">₹{pData.value.toLocaleString()}</p>
+          <p className="text-xs font-bold text-slate-400 mt-1">{percentage}% of Total</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#06b6d4'];
 
   return (
@@ -208,7 +228,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
-                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} formatter={(val) => `₹${val.toLocaleString()}`} />
+                <Tooltip content={<PieCustomTooltip />} />
               </RechartsPieChart>
             </ResponsiveContainer>
           </div>

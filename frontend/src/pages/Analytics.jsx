@@ -101,6 +101,30 @@ export default function Analytics() {
     return null;
   };
 
+  const PieCustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const total = categoryData.reduce((sum, item) => sum + item.value, 0);
+      const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
+      
+      return (
+        <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
+          <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.payload.fill }}></span>
+            {data.name}
+          </p>
+          <p className="text-sm mt-1">
+            {currencySymbol}{data.value.toLocaleString()}
+          </p>
+          <p className="text-sm font-bold text-slate-500 mt-1">
+            {percentage}% of Total Expenses
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -184,11 +208,7 @@ export default function Analytics() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '16px' }}
-                  itemStyle={{ color: 'var(--foreground)' }}
-                  formatter={(value) => `${currencySymbol}${value.toLocaleString()}`}
-                />
+                <Tooltip content={<PieCustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

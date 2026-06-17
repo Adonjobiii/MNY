@@ -239,6 +239,30 @@ export default function Dashboard() {
     return null;
   };
 
+  const PieCustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const total = activeDisplayCurrency === 'INR' ? totalExpensesINR : totalExpensesQAR;
+      const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
+      
+      return (
+        <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
+          <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }}></span>
+            {data.name}
+          </p>
+          <p className="text-sm mt-1">
+            {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{data.value.toLocaleString()}
+          </p>
+          <p className="text-sm font-bold text-slate-500 mt-1">
+            {percentage}% of Total Expenses
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto min-h-screen bg-[var(--bg)] custom-scrollbar pb-24 relative">
       <div className="absolute top-0 w-full flex justify-center z-50 pointer-events-none" style={{ transform: `translateY(${Math.max(0, pullProgress * 50 - 50)}px)`}}>
@@ -398,7 +422,7 @@ export default function Dashboard() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                    <Tooltip content={<PieCustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

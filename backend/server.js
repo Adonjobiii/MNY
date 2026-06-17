@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const cron = require('node-cron');
+const { exec } = require('child_process');
 const cheerio = require('cheerio');
 const getDbConnection = require('./db');
 const { performBackup } = require('./backup');
@@ -447,7 +448,17 @@ getDbConnection().then(database => {
     // Keep the daily cron in case the server stays awake 24/7
     cron.schedule('0 1 * * *', runAutomatedChecks);
 
-
+    // Auto-sync with GitHub every 30 minutes
+    cron.schedule('*/30 * * * *', () => {
+      console.log('[AUTO-SYNC] Running auto-sync to GitHub...');
+      exec('git add . && git commit -m "Auto sync: ' + new Date().toISOString() + '" && git push', { cwd: __dirname + '/../' }, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[AUTO-SYNC] Error: ${error.message}`);
+          return;
+        }
+        console.log(`[AUTO-SYNC] Output: ${stdout}`);
+      });
+    });
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
   });
