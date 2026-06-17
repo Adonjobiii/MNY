@@ -90,11 +90,9 @@ export default function Analytics() {
               {entry.name}: {currencySymbol}{entry.value.toLocaleString()}
             </p>
           ))}
-          {(income > 0 || expenses > 0) && (
-            <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
-              Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
-            </p>
-          )}
+          <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
+            Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
+          </p>
         </div>
       );
     }
