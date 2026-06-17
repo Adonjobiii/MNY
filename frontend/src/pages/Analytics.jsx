@@ -221,7 +221,7 @@ export default function Analytics() {
               <YAxis width={80} axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dx={-10} tickFormatter={formatYAxis} />
               <Tooltip 
                 cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '16px' }}
+                content={<CustomTooltip />}
               />
               <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
