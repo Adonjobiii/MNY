@@ -109,8 +109,15 @@ export default function Dashboard() {
 
   const isQAR = (tx) => tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR';
 
-  const totalIncomeINR = filteredTransactions.filter(t => t.type === 'Income' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
-  const totalExpensesINR = filteredTransactions.filter(t => t.type === 'Expense' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const isCurrentMonth = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  };
+
+  const totalIncomeINR = filteredTransactions.filter(t => t.type === 'Income' && !isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
+  const totalExpensesINR = filteredTransactions.filter(t => t.type === 'Expense' && !isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
@@ -121,8 +128,8 @@ export default function Dashboard() {
     return acc;
   }, 0);
 
-  const totalIncomeQAR = filteredTransactions.filter(t => t.type === 'Income' && isQAR(t)).reduce((s, t) => s + t.amount, 0);
-  const totalExpensesQAR = filteredTransactions.filter(t => t.type === 'Expense' && isQAR(t)).reduce((s, t) => s + t.amount, 0);
+  const totalIncomeQAR = filteredTransactions.filter(t => t.type === 'Income' && isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
+  const totalExpensesQAR = filteredTransactions.filter(t => t.type === 'Expense' && isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
@@ -133,7 +140,7 @@ export default function Dashboard() {
     return acc;
   }, 0);
 
-  const healthScore = totalIncomeINR === 0 && totalExpensesINR === 0 ? 100 : 
+  const healthScore = totalIncomeINR === 0 && totalExpensesINR === 0 ? 0 : 
                       totalIncomeINR === 0 ? 0 : 
                       Math.max(0, Math.round(((totalIncomeINR - totalExpensesINR) / totalIncomeINR) * 100));
 

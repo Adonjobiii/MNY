@@ -22,10 +22,23 @@ export default function Investments() {
       .catch(err => console.error('Failed to load investments:', err));
   };
 
+  const [exchangeRate, setExchangeRate] = useState(22.95);
+  const [isFetchingRate, setIsFetchingRate] = useState(false);
+
   useEffect(() => {
     fetchInvestments();
-    // Assuming socket.io is set up in a central place or we just poll for now
-    // A better way is using socket.io-client, but let's just fetch for now and maybe add socket later if needed.
+    
+    // Fetch live QAR to INR exchange rate
+    setIsFetchingRate(true);
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/exchange-rate`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.rate) {
+          setExchangeRate(data.rate);
+        }
+      })
+      .catch(err => console.error('Failed to fetch exchange rate:', err))
+      .finally(() => setIsFetchingRate(false));
   }, []);
 
   const handleChange = (e) => {
@@ -63,7 +76,14 @@ export default function Investments() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-1">Investments</h1>
-          <p className="opacity-60">Track your SIPs, FDs, Stocks, and Gold.</p>
+          <p className="opacity-60 flex items-center gap-2">
+            Track your SIPs, FDs, Stocks, and Gold.
+            {isFetchingRate ? (
+              <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded animate-pulse">Updating rate...</span>
+            ) : (
+              <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded">1 QAR = ₹{exchangeRate}</span>
+            )}
+          </p>
         </div>
         <button 
           onClick={() => setShowAddForm(!showAddForm)}
@@ -189,6 +209,11 @@ export default function Investments() {
                   {inv.currency === 'INR' ? '₹' : 'QAR '}
                   {inv.amount.toLocaleString()}
                 </div>
+                {inv.currency === 'QAR' && (
+                  <div className="text-sm font-bold text-emerald-600 mt-1">
+                    ≈ ₹{(inv.amount * exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                )}
                 <div className="text-sm opacity-60 mt-1 flex items-center gap-1">
                   <Calendar size={14} /> Completion: {new Date(inv.completion_date).toLocaleDateString()}
                 </div>

@@ -642,7 +642,7 @@ export default function Transactions() {
                   </td>
                   <td className="p-4 text-sm opacity-80 whitespace-nowrap">{tx.mode}</td>
                   <td className={`p-4 font-bold text-right whitespace-nowrap ${tx.type === 'Income' ? 'text-green-500' : 'text-red-500'}`}>
-                    {tx.type === 'Income' ? '+' : '-'}₹{tx.amount.toLocaleString()}
+                    {tx.type === 'Income' ? '+' : '-'}{(tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR' || tx.mode?.includes('QAR')) ? 'QAR ' : '₹'}{tx.amount.toLocaleString()}
                   </td>
                   <td className="p-4 text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">

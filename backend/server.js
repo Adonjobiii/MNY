@@ -4,7 +4,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const cron = require('node-cron');
+const cheerio = require('cheerio');
 const getDbConnection = require('./db');
+const { performBackup } = require('./backup');
 
 const app = express();
 const server = http.createServer(app);
@@ -292,6 +294,64 @@ app.get('/api/insights', async (req, res) => {
   }
 });
 
+// ==========================================
+// EXCHANGE RATE API
+// ==========================================
+let cachedRate = null;
+let lastFetchTime = 0;
+
+app.get('/api/exchange-rate', async (req, res) => {
+  const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+  if (cachedRate && (Date.now() - lastFetchTime < CACHE_DURATION)) {
+    return res.json({ rate: cachedRate, source: 'cache' });
+  }
+
+  try {
+    const response = await fetch('https://www.xe.com/currencyconverter/convert/?Amount=1&From=QAR&To=INR', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`XE.com returned ${response.status}`);
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Look for the element containing the big rate. Usually it has a class like result__BigRate...
+    let rateText = $('[class^="result__BigRate"]').text();
+    
+    // If that fails, fallback to regex
+    if (!rateText) {
+      const match = html.match(/([\d.]+)<span class="[^"]*faded-digits[^"]*">\s*INR/i);
+      if (match) rateText = match[1];
+    }
+
+    if (rateText) {
+      // Remove 'INR', 'QAR', commas, and keep only the number
+      const rateNum = parseFloat(rateText.replace(/[^\d.]/g, ''));
+      if (!isNaN(rateNum) && rateNum > 0) {
+        cachedRate = rateNum;
+        lastFetchTime = Date.now();
+        return res.json({ rate: cachedRate, source: 'live' });
+      }
+    }
+
+    throw new Error('Could not parse rate from XE.com html');
+  } catch (error) {
+    console.error('Exchange rate fetch error:', error.message);
+    if (cachedRate) {
+      return res.json({ rate: cachedRate, source: 'stale_cache' });
+    }
+    // Hardcoded fallback rough value
+    res.json({ rate: 22.95, source: 'fallback' });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Initialize Database then start server
@@ -377,6 +437,8 @@ getDbConnection().then(database => {
       await checkAndRunRule(26, (dateStr, monthName, day) => ({
         date: dateStr, type: 'Expense', category: 'Subscriptions', description: `Automated YouTube Premium - ${monthName} ${day}`, mode: 'ICICI Bank', amount: 299, status: 'Completed'
       }));
+      // Run daily database backup
+      await performBackup(db);
     };
   
     // Run automatically when the server wakes up / starts
@@ -384,6 +446,7 @@ getDbConnection().then(database => {
   
     // Keep the daily cron in case the server stays awake 24/7
     cron.schedule('0 1 * * *', runAutomatedChecks);
+
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target, TrendingUp, PieChart, Briefcase, Activity, CheckCircle2, AlertTriangle, FileText, Sparkles, CreditCard, Building, Banknote } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie } from 'recharts';
 
 const ReportCover = ({ data }) => (
   <div className="page-break-after min-h-[297mm] bg-white text-slate-900 flex flex-col items-center justify-center p-20 relative overflow-hidden">
@@ -19,20 +19,33 @@ const ReportCover = ({ data }) => (
       <p className="text-3xl font-bold text-slate-800">{data.userName}</p>
     </div>
     
-    <div className="mt-20 w-full max-w-2xl bg-slate-50 p-8 rounded-3xl border border-slate-200 grid grid-cols-3 gap-8 text-center shadow-lg">
-      <div>
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Health Score</p>
-        <p className="text-4xl font-black text-blue-600">{data.healthScore}/100</p>
+    <div className="mt-20 w-full max-w-3xl bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-200 grid grid-cols-3 gap-4 md:gap-8 text-center shadow-lg">
+      <div className="overflow-hidden flex flex-col justify-center min-w-0">
+        <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Health Score</p>
+        <p className="text-xl md:text-3xl font-black text-blue-600 truncate">{data.healthScore}/100</p>
       </div>
-      <div className="border-l border-r border-slate-200">
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Net Worth</p>
-        <p className="text-4xl font-black text-slate-800">₹{data.netWorth.toLocaleString()}</p>
+      <div className="border-l border-r border-slate-200 overflow-hidden px-2 md:px-4 flex flex-col justify-center min-w-0">
+        <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Net Worth</p>
+        <p className="text-xl md:text-3xl font-black text-slate-800 truncate" title={`₹${data.netWorth.toLocaleString()}`}>₹{data.netWorth.toLocaleString()}</p>
       </div>
-      <div>
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Saved</p>
-        <p className="text-4xl font-black text-emerald-600">₹{data.totalSavings.toLocaleString()}</p>
+      <div className="overflow-hidden flex flex-col justify-center min-w-0">
+        <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Saved</p>
+        <p className="text-xl md:text-3xl font-black text-emerald-600 truncate" title={`₹${data.totalSavings.toLocaleString()}`}>₹{data.totalSavings.toLocaleString()}</p>
       </div>
     </div>
+
+    {(data.totalIncomeQAR > 0 || data.totalExpensesQAR > 0) && (
+      <div className="mt-6 w-full max-w-xl bg-purple-50 p-6 rounded-3xl border border-purple-100 grid grid-cols-2 gap-6 text-center shadow-md">
+        <div className="overflow-hidden flex flex-col justify-center min-w-0">
+          <p className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">QAR Income</p>
+          <p className="text-lg md:text-xl font-black text-purple-700 truncate">QAR {data.totalIncomeQAR.toLocaleString()}</p>
+        </div>
+        <div className="border-l border-purple-200 overflow-hidden px-4 flex flex-col justify-center min-w-0">
+          <p className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">QAR Spent</p>
+          <p className="text-lg md:text-xl font-black text-pink-600 truncate">QAR {data.totalExpensesQAR.toLocaleString()}</p>
+        </div>
+      </div>
+    )}
     
     <div className="absolute bottom-10 text-slate-400 text-sm font-medium">
       Generated on {new Date().toLocaleString()}
@@ -49,7 +62,15 @@ const SectionHeader = ({ title, icon: Icon }) => (
   </div>
 );
 
-const ExecutiveSummary = ({ data }) => (
+const ExecutiveSummary = ({ data }) => {
+  const formatMoM = (val) => {
+    if (val === null || !data.isComparisonValid) return null;
+    if (val > 0) return <span className="text-xs font-bold text-slate-400 ml-2 bg-slate-200 px-2 py-1 rounded-full">+{val}% vs last mo</span>;
+    if (val < 0) return <span className="text-xs font-bold text-slate-400 ml-2 bg-slate-200 px-2 py-1 rounded-full">{val}% vs last mo</span>;
+    return <span className="text-xs font-bold text-slate-400 ml-2 bg-slate-200 px-2 py-1 rounded-full">No change</span>;
+  };
+
+  return (
   <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
     <SectionHeader title="Executive Summary" icon={FileText} />
     
@@ -59,16 +80,21 @@ const ExecutiveSummary = ({ data }) => (
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Total Income</span>
-            <span className="font-bold text-emerald-600 text-xl">₹{data.totalIncome.toLocaleString()}</span>
+            <span className="font-bold text-emerald-600 text-xl flex items-center">
+              ₹{data.totalIncome.toLocaleString()} {formatMoM(data.momIncome)}
+            </span>
           </div>
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Total Expenses</span>
-            <span className="font-bold text-red-600 text-xl">₹{data.totalExpenses.toLocaleString()}</span>
+            <span className="font-bold text-red-600 text-xl flex items-center">
+              ₹{data.totalExpenses.toLocaleString()} {formatMoM(data.momExpenses)}
+            </span>
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="font-bold text-slate-800 text-lg">Net Cash Flow</span>
-            <span className={`font-black text-2xl ${data.netCashFlow > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            <span className={`font-black text-2xl flex items-center ${data.netCashFlow > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {data.netCashFlow > 0 ? '+' : ''}₹{data.netCashFlow.toLocaleString()}
+              {formatMoM(data.momNet)}
             </span>
           </div>
         </div>
@@ -110,7 +136,8 @@ const ExecutiveSummary = ({ data }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const IncomeExpenseAnalysis = ({ data }) => {
   // Chart Data Preparation
@@ -171,9 +198,22 @@ const IncomeExpenseAnalysis = ({ data }) => {
       <div className="mb-12">
         <h3 className="text-2xl font-bold text-slate-800 mb-6">Expense Categories</h3>
         
-        <div className="grid grid-cols-[1fr_300px] gap-8">
+        <div className="grid grid-cols-[1fr_1fr_250px] gap-8">
           <div className="bg-slate-50 rounded-3xl border border-slate-200 p-6 flex flex-col justify-center h-80">
-            <h4 className="text-center font-bold text-slate-500 mb-4 uppercase tracking-wide">Top Expenses Bar Graph</h4>
+            <h4 className="text-center font-bold text-slate-500 mb-4 uppercase tracking-wide">Expense Distribution</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsPieChart>
+                <Pie data={data.expenseCategories} dataKey="amount" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
+                  {data.expenseCategories.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} formatter={(val) => `₹${val.toLocaleString()}`} />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-slate-50 rounded-3xl border border-slate-200 p-6 flex flex-col justify-center h-80">
+            <h4 className="text-center font-bold text-slate-500 mb-4 uppercase tracking-wide">Top Expenses</h4>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -336,6 +376,41 @@ const InvestmentAndAI = ({ data }) => (
   </div>
 );
 
+const DuesDetails = ({ data }) => {
+  if (!data.duesData || data.duesData.length === 0) return null;
+
+  return (
+    <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
+      <SectionHeader title="Active Dues & Receivables" icon={AlertTriangle} />
+      
+      <div className="mb-12">
+        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
+          <div className="grid grid-cols-4 font-bold text-slate-500 uppercase tracking-wider text-sm border-b border-slate-200 pb-3">
+            <div>Description</div>
+            <div>Action</div>
+            <div>To/From</div>
+            <div className="text-right">Amount</div>
+          </div>
+          {data.duesData.map(due => (
+            <div key={due.id} className="grid grid-cols-4 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0 pt-2">
+              <div className="font-medium text-slate-800">{due.description}</div>
+              <div>
+                <span className={`px-2 py-1 rounded-lg text-xs font-bold uppercase ${due.dueAction === 'give' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                  {due.dueAction}
+                </span>
+              </div>
+              <div className="text-slate-600">{due.toWhom || '-'}</div>
+              <div className={`text-right font-bold ${due.dueAction === 'give' ? 'text-red-600' : 'text-emerald-600'}`}>
+                {due.dueCurrency === 'QAR' ? 'QAR ' : '₹'}{Number(due.amount).toLocaleString()}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MonthlyReportTemplate = ({ data }) => {
   return (
     <div className="report-container max-w-[210mm] mx-auto bg-white shadow-2xl rounded-sm print:shadow-none print:max-w-none text-slate-900">
@@ -354,6 +429,7 @@ const MonthlyReportTemplate = ({ data }) => {
       <ReportCover data={data} />
       <ExecutiveSummary data={data} />
       <IncomeExpenseAnalysis data={data} />
+      <DuesDetails data={data} />
       <BudgetGoalsAnalysis data={data} />
       <InvestmentAndAI data={data} />
     </div>
