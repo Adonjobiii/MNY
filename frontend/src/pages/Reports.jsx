@@ -181,7 +181,7 @@ export default function Reports() {
   }, [selectedDate]);
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: `TrackMyMNY_Report_${data?.monthYear?.replace(' ', '_')}`
   });
 
