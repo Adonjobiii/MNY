@@ -56,8 +56,49 @@ export default function Analytics() {
   const currencySymbol = displayCurrency === 'INR' ? '₹' : 'QAR ';
 
   const formatYAxis = (val) => {
-    if (val >= 1000) return `${currencySymbol}${(val/1000).toFixed(1).replace(/\\.0$/, '')}k`;
+    if (val >= 1000) return `${currencySymbol}${(val/1000).toFixed(1).replace(/\.0$/, '')}k`;
     return `${currencySymbol}${val}`;
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const incomeObj = payload.find(p => p.dataKey === 'income');
+      const expensesObj = payload.find(p => p.dataKey === 'expenses');
+      
+      const income = incomeObj ? incomeObj.value : 0;
+      const expenses = expensesObj ? expensesObj.value : 0;
+      
+      let spendingPercentage = 0;
+      if (income > 0) {
+        spendingPercentage = Math.round((expenses / income) * 100);
+      } else if (expenses > 0) {
+        spendingPercentage = 100; // Infinity effectively, but cap for display
+      }
+      
+      let colorClass = "text-green-500";
+      if (spendingPercentage > 60) {
+        colorClass = "text-red-500";
+      } else if (spendingPercentage > 30) {
+        colorClass = "text-orange-500";
+      }
+
+      return (
+        <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
+          <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+              {entry.name}: {currencySymbol}{entry.value.toLocaleString()}
+            </p>
+          ))}
+          {income > 0 && (
+            <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
+              Spending: {spendingPercentage}%
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -118,10 +159,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dy={10} />
                 <YAxis width={80} axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dx={-10} tickFormatter={formatYAxis} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                  itemStyle={{ color: 'var(--foreground)' }}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
               </AreaChart>

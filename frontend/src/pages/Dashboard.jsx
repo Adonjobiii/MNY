@@ -198,6 +198,47 @@ export default function Dashboard() {
   }, {});
   const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-7);
 
+  const DashboardCustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const incomeObj = payload.find(p => p.dataKey === 'Income');
+      const expensesObj = payload.find(p => p.dataKey === 'Expense');
+      
+      const income = incomeObj ? incomeObj.value : 0;
+      const expenses = expensesObj ? expensesObj.value : 0;
+      
+      let spendingPercentage = 0;
+      if (income > 0) {
+        spendingPercentage = Math.round((expenses / income) * 100);
+      } else if (expenses > 0) {
+        spendingPercentage = 100;
+      }
+      
+      let colorClass = "text-green-500";
+      if (spendingPercentage > 60) {
+        colorClass = "text-red-500";
+      } else if (spendingPercentage > 30) {
+        colorClass = "text-orange-500";
+      }
+
+      return (
+        <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
+          <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+              {entry.name}: {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{entry.value.toLocaleString()}
+            </p>
+          ))}
+          {income > 0 && (
+            <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
+              Spending: {spendingPercentage}%
+            </p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto min-h-screen bg-[var(--bg)] custom-scrollbar pb-24 relative">
       <div className="absolute top-0 w-full flex justify-center z-50 pointer-events-none" style={{ transform: `translateY(${Math.max(0, pullProgress * 50 - 50)}px)`}}>
@@ -321,7 +362,7 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                     <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
                     <YAxis stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                    <Tooltip content={<DashboardCustomTooltip />} />
                     <Area type="monotone" dataKey="Income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                     <Area type="monotone" dataKey="Expense" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
                   </AreaChart>
