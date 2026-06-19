@@ -251,10 +251,26 @@ export default function Transactions() {
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
+          type: 'Expense',
+          category: 'Dues Given',
+          description: `Given Dues: ${finalDescription}`,
+          mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
+          amount: parseFloat(amount),
+          status: 'Completed'
+        };
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cashTx)
+        });
+      } else if (addToCash && txType === 'Dues' && dueAction === 'settle') {
+        const cashTx = {
+          id: Date.now() + 1,
+          date: txDate,
           type: 'Income',
-          category: 'Transfer/Loan',
-          description: `Received Cash from: ${description}`,
-          mode: `Cash (${dueCurrency === 'INR' ? 'Rupees' : 'Qatar Riyal'})`,
+          category: 'Dues Received',
+          description: `Received Dues: ${finalDescription}`,
+          mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
           amount: parseFloat(amount),
           status: 'Completed'
         };
@@ -1051,6 +1067,23 @@ export default function Transactions() {
                   </div>
 
                   {dueAction === 'add' && (
+                    <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-sm font-bold block">Also Deduct from Cash Account?</label>
+                          <p className="text-xs opacity-60">Automatically create an expense transaction in your Cash account</p>
+                        </div>
+                        <button 
+                          onClick={() => setAddToCash(!addToCash)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-red-500' : 'bg-black/20 dark:bg-white/20'}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {dueAction === 'settle' && (
                     <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
                       <div className="flex items-center justify-between">
                         <div>

@@ -120,11 +120,7 @@ export default function Dashboard() {
   const totalExpensesINR = filteredTransactions.filter(t => t.type === 'Expense' && !isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
-    if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
-    if (tx.type === 'Dues' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc + tx.amount;
-      if (tx.dueAction === 'settle') return acc - tx.amount;
-    }
+    if (tx.type === 'Expense') return acc - tx.amount;
     return acc;
   }, 0);
 
@@ -132,21 +128,20 @@ export default function Dashboard() {
   const totalExpensesQAR = filteredTransactions.filter(t => t.type === 'Expense' && isQAR(t) && isCurrentMonth(t.date)).reduce((s, t) => s + t.amount, 0);
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
-    if (tx.type === 'Expense' || tx.type === 'Debt') return acc - tx.amount;
-    if (tx.type === 'Dues' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc + tx.amount;
-      if (tx.dueAction === 'settle') return acc - tx.amount;
-    }
+    if (tx.type === 'Expense') return acc - tx.amount;
     return acc;
   }, 0);
-
-  const healthScore = totalIncomeINR === 0 && totalExpensesINR === 0 ? 0 : 
-                      totalIncomeINR === 0 ? 0 : 
-                      Math.max(0, Math.round(((totalIncomeINR - totalExpensesINR) / totalIncomeINR) * 100));
 
   const activeDisplayCurrency = ['icici', 'sib', 'cash_inr'].includes(selectedAccount) ? 'INR' 
     : ['cash_qar', 'qatar_bank'].includes(selectedAccount) ? 'QAR' 
     : displayCurrency;
+
+  const currentTotalIncome = activeDisplayCurrency === 'QAR' ? totalIncomeQAR : totalIncomeINR;
+  const currentTotalExpenses = activeDisplayCurrency === 'QAR' ? totalExpensesQAR : totalExpensesINR;
+
+  const healthScore = currentTotalIncome === 0 && currentTotalExpenses === 0 ? 0 : 
+                      currentTotalIncome === 0 ? 0 : 
+                      Math.max(0, Math.round(((currentTotalIncome - currentTotalExpenses) / currentTotalIncome) * 100));
 
   const showINR = ['all', 'icici', 'sib', 'cash_inr', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
   const showQAR = ['all', 'cash_qar', 'qatar_bank', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
