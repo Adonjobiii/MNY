@@ -40,6 +40,21 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [displayCurrency, setDisplayCurrency] = useState('INR');
 
+  const getGreeting = () => {
+    try {
+      const qatarTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Qatar" });
+      const hour = new Date(qatarTime).getHours();
+      if (hour < 12) return 'Good Morning';
+      if (hour < 18) return 'Good Afternoon';
+      return 'Good Evening';
+    } catch (e) {
+      const hour = new Date().getHours();
+      if (hour < 12) return 'Good Morning';
+      if (hour < 18) return 'Good Afternoon';
+      return 'Good Evening';
+    }
+  };
+
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`)
       .then(res => res.json())
@@ -270,7 +285,7 @@ export default function Dashboard() {
       <div className="p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto transition-transform" style={{ transform: `translateY(${isRefreshing ? 50 : pullProgress * 50}px)` }}>
         <div className="flex justify-between items-center mb-6 md:mb-8 mt-2 md:mt-0">
           <div>
-            <h1 className="text-sm font-bold opacity-60 uppercase tracking-widest mb-1">Good Morning</h1>
+            <h1 className="text-sm font-bold opacity-60 uppercase tracking-widest mb-1">{getGreeting()}</h1>
             <h2 className="text-2xl md:text-4xl font-black tracking-tight">Adon</h2>
           </div>
           <div className="md:hidden w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-[2px] shadow-lg shadow-blue-500/20">
