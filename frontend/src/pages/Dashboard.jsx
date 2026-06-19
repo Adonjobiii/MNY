@@ -191,7 +191,11 @@ export default function Dashboard() {
   );
 
   const expensesByCategory = displayTransactions
-    .filter(t => t.type === 'Expense')
+    .filter(t => {
+      if (selectedAccount === 'total_dues') return t.type === 'Dues' && t.dueAction === 'add';
+      if (selectedAccount === 'total_debt') return t.type === 'Debt';
+      return t.type === 'Expense';
+    })
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;
@@ -205,8 +209,15 @@ export default function Dashboard() {
 
   const flowByDate = displayTransactions.reduce((acc, t) => {
     if (!acc[t.date]) acc[t.date] = { date: t.date, Income: 0, Expense: 0 };
-    if (t.type === 'Income') acc[t.date].Income += t.amount;
-    if (t.type === 'Expense') acc[t.date].Expense += t.amount;
+    if (selectedAccount === 'total_dues') {
+      if (t.type === 'Dues' && t.dueAction === 'settle') acc[t.date].Income += t.amount;
+      if (t.type === 'Dues' && t.dueAction === 'add') acc[t.date].Expense += t.amount;
+    } else if (selectedAccount === 'total_debt') {
+      if (t.type === 'Debt') acc[t.date].Income += t.amount; // taking debt is an inflow
+    } else {
+      if (t.type === 'Income') acc[t.date].Income += t.amount;
+      if (t.type === 'Expense') acc[t.date].Expense += t.amount;
+    }
     return acc;
   }, {});
   const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-7);
@@ -412,7 +423,10 @@ export default function Dashboard() {
 
           <div className="glass-panel rounded-3xl p-6 flex flex-col items-center">
             <div className="flex justify-between items-center mb-6 w-full">
-              <h2 className="text-xl font-semibold">Expenses by Category</h2>
+              <h2 className="text-xl font-semibold">
+                {selectedAccount === 'total_dues' ? 'Dues by Category' : 
+                 selectedAccount === 'total_debt' ? 'Debt by Category' : 'Expenses by Category'}
+              </h2>
               <div className="text-sm font-bold opacity-50">{activeDisplayCurrency === 'INR' ? '₹ Rupees' : 'QAR Riyal'}</div>
             </div>
             {categoryData.length > 0 ? (
