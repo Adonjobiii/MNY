@@ -208,7 +208,7 @@ export default function Dashboard() {
   }));
 
   const flowByDate = displayTransactions.reduce((acc, t) => {
-    if (!acc[t.date]) acc[t.date] = { date: t.date, Income: 0, Expense: 0 };
+    if (!acc[t.date]) acc[t.date] = { date: t.date, Income: 0, Expense: 0, Dues: 0, Debt: 0 };
     if (selectedAccount === 'total_dues') {
       if (t.type === 'Dues' && t.dueAction === 'settle') acc[t.date].Income += t.amount;
       if (t.type === 'Dues' && t.dueAction === 'add') acc[t.date].Expense += t.amount;
@@ -217,6 +217,8 @@ export default function Dashboard() {
     } else {
       if (t.type === 'Income') acc[t.date].Income += t.amount;
       if (t.type === 'Expense') acc[t.date].Expense += t.amount;
+      if (t.type === 'Dues' && t.dueAction === 'add') acc[t.date].Dues += t.amount;
+      if (t.type === 'Debt') acc[t.date].Debt += t.amount;
     }
     return acc;
   }, {});
@@ -404,13 +406,27 @@ export default function Dashboard() {
                         <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
                         <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                       </linearGradient>
+                      <linearGradient id="colorDues" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorDebt" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                     <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
                     <YAxis stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
                     <Tooltip content={<DashboardCustomTooltip />} />
-                    <Area type="monotone" dataKey="Income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                    <Area type="monotone" dataKey="Expense" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
+                    <Area type="monotone" dataKey="Income" name="Cash Earned" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                    <Area type="monotone" dataKey="Expense" name="Cash Spent" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
+                    {selectedAccount !== 'total_dues' && selectedAccount !== 'total_debt' && (
+                      <>
+                        <Area type="monotone" dataKey="Dues" name="Dues Added" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorDues)" />
+                        <Area type="monotone" dataKey="Debt" name="Debt Added" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorDebt)" />
+                      </>
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
