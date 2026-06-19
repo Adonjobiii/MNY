@@ -122,11 +122,7 @@ export default function Dashboard() {
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt') return acc + tx.amount;
-    if (tx.type === 'Dues' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-    }
+    if (tx.type === 'Debt') return acc - tx.amount;
     return acc;
   }, 0);
 
@@ -135,11 +131,7 @@ export default function Dashboard() {
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt') return acc + tx.amount;
-    if (tx.type === 'Dues' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-    }
+    if (tx.type === 'Debt') return acc - tx.amount;
     return acc;
   }, 0);
 
