@@ -102,6 +102,9 @@ app.post('/api/transactions', async (req, res) => {
     // Broadcast to ALL connected clients instantly
     io.emit('transaction_added', newTx);
     
+    // Automatically trigger backup on data change
+    performBackup(db).catch(console.error);
+    
     res.status(201).json(newTx);
   } catch (error) {
     console.error(error);
@@ -127,6 +130,9 @@ app.put('/api/transactions/:id', async (req, res) => {
     // Broadcast update
     io.emit('transaction_updated', updatedTx);
     
+    // Automatically trigger backup on data change
+    performBackup(db).catch(console.error);
+    
     res.json(updatedTx);
   } catch (error) {
     console.error(error);
@@ -142,6 +148,9 @@ app.delete('/api/transactions/:id', async (req, res) => {
     
     // Broadcast deletion
     io.emit('transaction_deleted', id);
+    
+    // Automatically trigger backup on data change
+    performBackup(db).catch(console.error);
     
     res.json({ message: 'Transaction deleted' });
   } catch (error) {

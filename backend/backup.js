@@ -16,10 +16,11 @@ async function performBackup(db) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
 
-    // Check if backup already exists for today
+    // If backup already exists for today, we will overwrite it to keep it fully up to date!
     if (fs.existsSync(backupFile)) {
-      console.log(`[BACKUP] Backup for ${dateStr} already exists. Skipping.`);
-      return;
+      console.log(`[BACKUP] Updating today's backup file: ${dateStr}...`);
+    } else {
+      console.log(`[BACKUP] Starting new database backup for ${dateStr}...`);
     }
 
     console.log(`[BACKUP] Starting database backup for ${dateStr}...`);
