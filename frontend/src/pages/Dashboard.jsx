@@ -77,30 +77,19 @@ export default function Dashboard() {
     if (selectedAccount === 'all') return true;
     if (selectedAccount === 'total_dues') return tx.type === 'Dues';
     if (selectedAccount === 'total_debt') return tx.type === 'Debt';
-    if (selectedAccount === 'total_cash') {
-      return tx.mode === 'Cash (Rupees)' || 
-             tx.mode === 'Cash (Qatar Riyal)' || 
-             (tx.type === 'Dues' && !tx.includeInBalance && (tx.dueCurrency === 'INR' || tx.dueCurrency === 'QAR'));
-    }
+    if (selectedAccount === 'total_cash') return tx.mode === 'Cash (Rupees)' || tx.mode === 'Cash (Qatar Riyal)';
     const accDef = accounts.find(a => a.id === selectedAccount);
-    if (accDef) {
-      if (tx.mode === accDef.name || tx.mode === `UPI (${accDef.name})`) return true;
-      if (tx.type === 'Dues' && !tx.includeInBalance && accDef.name.startsWith('Cash')) {
-         return tx.dueCurrency === (accDef.name.includes('Rupees') ? 'INR' : 'QAR');
-      }
-      return false;
-    }
-    return false;
+    return accDef ? (tx.mode === accDef.name || tx.mode === `UPI (${accDef.name})`) : false;
   });
 
   const getBalance = (accountName) => {
     return transactions
-      .filter(tx => tx.mode === accountName || tx.mode === `UPI (${accountName})` || (tx.type === 'Dues' && !tx.includeInBalance && accountName === (tx.dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)')))
+      .filter(tx => tx.mode === accountName || tx.mode === `UPI (${accountName})`)
       .reduce((acc, tx) => {
         if (tx.type === 'Income') return acc + tx.amount;
         if (tx.type === 'Expense') return acc - tx.amount;
         if (tx.type === 'Debt') return acc - tx.amount;
-        if (tx.type === 'Dues' && !tx.includeInBalance) {
+        if (tx.type === 'Dues' && tx.includeInBalance) {
           if (tx.dueAction === 'add') return acc - tx.amount;
           if (tx.dueAction === 'settle') return acc + tx.amount;
         }
@@ -138,10 +127,7 @@ export default function Dashboard() {
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Dues' && !tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-    }
+    if (tx.type === 'Debt') return acc - tx.amount;
     return acc;
   }, 0);
 
@@ -150,10 +136,7 @@ export default function Dashboard() {
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Dues' && !tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-    }
+    if (tx.type === 'Debt') return acc - tx.amount;
     return acc;
   }, 0);
 
