@@ -4,8 +4,6 @@ import FinancialInsights from '../components/FinancialInsights';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Wallet, Building2, Landmark, AlertCircle, RefreshCw } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
-import QuickTransactionSheet from '../components/mobile/QuickTransactionSheet';
-import FAB from '../components/mobile/FAB';
 
 const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
 
@@ -23,19 +21,11 @@ const accounts = [
 ];
 
 export default function Dashboard() {
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [quickEntryType, setQuickEntryType] = useState('Expense');
-  
   const handleRefresh = async () => {
     await new Promise(r => setTimeout(r, 1000));
   };
 
   const { isRefreshing, pullProgress } = usePullToRefresh(handleRefresh);
-
-  const handleFabAction = (actionLabel) => {
-    setQuickEntryType(actionLabel);
-    setIsQuickEntryOpen(true);
-  };
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [transactions, setTransactions] = useState([]);
   const [displayCurrency, setDisplayCurrency] = useState('INR');
@@ -47,7 +37,7 @@ export default function Dashboard() {
       if (hour < 12) return 'Good Morning';
       if (hour < 18) return 'Good Afternoon';
       return 'Good Evening';
-    } catch (e) {
+    } catch {
       const hour = new Date().getHours();
       if (hour < 12) return 'Good Morning';
       if (hour < 18) return 'Good Afternoon';
@@ -241,68 +231,6 @@ export default function Dashboard() {
   }, {});
   const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-7);
 
-  const DashboardCustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const incomeObj = payload.find(p => p.dataKey === 'Income');
-      const expensesObj = payload.find(p => p.dataKey === 'Expense');
-      
-      const income = incomeObj ? incomeObj.value : 0;
-      const expenses = expensesObj ? expensesObj.value : 0;
-      
-      let spendingPercentage = 0;
-      if (income > 0) {
-        spendingPercentage = Math.round((expenses / income) * 100);
-      } else if (expenses > 0) {
-        spendingPercentage = 100;
-      }
-      
-      let colorClass = "text-green-500";
-      if (spendingPercentage > 60) {
-        colorClass = "text-red-500";
-      } else if (spendingPercentage > 30) {
-        colorClass = "text-orange-500";
-      }
-
-      return (
-        <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
-          <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
-              {entry.name}: {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{entry.value.toLocaleString()}
-            </p>
-          ))}
-          <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
-            Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const PieCustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const total = activeDisplayCurrency === 'INR' ? totalExpensesINR : totalExpensesQAR;
-      const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
-      
-      return (
-        <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
-          <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }}></span>
-            {data.name}
-          </p>
-          <p className="text-sm mt-1">
-            {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{data.value.toLocaleString()}
-          </p>
-          <p className="text-sm font-bold text-slate-500 mt-1">
-            {percentage}% of Total Expenses
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="flex-1 overflow-y-auto min-h-screen bg-[var(--bg)] custom-scrollbar pb-24 relative">
@@ -435,7 +363,7 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                     <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
                     <YAxis stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)'}} axisLine={false} tickLine={false} />
-                    <Tooltip content={<DashboardCustomTooltip />} />
+                    <Tooltip content={<DashboardCustomTooltip activeDisplayCurrency={activeDisplayCurrency} />} />
                     <Area type="monotone" dataKey="Income" name="Cash Earned" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                     <Area type="monotone" dataKey="Expense" name="Cash Spent" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
                     {selectedAccount !== 'total_dues' && selectedAccount !== 'total_debt' && (
@@ -480,7 +408,7 @@ export default function Dashboard() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip content={<PieCustomTooltip />} />
+                    <Tooltip content={<PieCustomTooltip activeDisplayCurrency={activeDisplayCurrency} totalExpensesINR={totalExpensesINR} totalExpensesQAR={totalExpensesQAR} />} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -500,6 +428,69 @@ export default function Dashboard() {
     </div>
   );
 }
+
+const DashboardCustomTooltip = ({ active, payload, label, activeDisplayCurrency }) => {
+  if (active && payload && payload.length) {
+    const incomeObj = payload.find(p => p.dataKey === 'Income');
+    const expensesObj = payload.find(p => p.dataKey === 'Expense');
+    
+    const income = incomeObj ? incomeObj.value : 0;
+    const expenses = expensesObj ? expensesObj.value : 0;
+    
+    let spendingPercentage = 0;
+    if (income > 0) {
+      spendingPercentage = Math.round((expenses / income) * 100);
+    } else if (expenses > 0) {
+      spendingPercentage = 100;
+    }
+    
+    let colorClass = "text-green-500";
+    if (spendingPercentage > 60) {
+      colorClass = "text-red-500";
+    } else if (spendingPercentage > 30) {
+      colorClass = "text-orange-500";
+    }
+
+    return (
+      <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
+        <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+            {entry.name}: {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{entry.value.toLocaleString()}
+          </p>
+        ))}
+        <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
+          Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const PieCustomTooltip = ({ active, payload, activeDisplayCurrency, totalExpensesINR, totalExpensesQAR }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const total = activeDisplayCurrency === 'INR' ? totalExpensesINR : totalExpensesQAR;
+    const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
+    
+    return (
+      <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
+        <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }}></span>
+          {data.name}
+        </p>
+        <p className="text-sm mt-1">
+          {activeDisplayCurrency === 'INR' ? '₹' : 'QAR '}{data.value.toLocaleString()}
+        </p>
+        <p className="text-sm font-bold text-slate-500 mt-1">
+          {percentage}% of Total Expenses
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 function SummaryCard({ title, amount, trend, isPositive, icon }) {
   return (

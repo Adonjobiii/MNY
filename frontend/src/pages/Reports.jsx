@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { FileText, Download, Printer, DownloadCloud, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Printer, DownloadCloud, ChevronLeft, ChevronRight } from 'lucide-react';
 import MonthlyReportTemplate from '../components/reports/MonthlyReportTemplate';
 
 export default function Reports() {

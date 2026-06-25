@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Target, Sparkles, Calendar, LayoutGrid } from 'lucide-react';
 import BudgetHealth from '../components/budget/BudgetHealth';
 import BudgetBoard from '../components/budget/BudgetBoard';
 import BudgetDrawer from '../components/budget/BudgetDrawer';
-
-const mockCategories = [];
 
 export default function Budget() {
   const [categories, setCategories] = useState([]);

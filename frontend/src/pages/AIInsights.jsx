@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, TrendingDown, AlertCircle, ArrowRight, Zap, Coffee, ShoppingBag, X, Check } from 'lucide-react';
-
-const mockInsights = [];
+import { useState, useEffect } from 'react';
+import { Sparkles, TrendingDown, AlertCircle, ArrowRight, Zap, X, Check } from 'lucide-react';
 
 export default function AIInsights() {
   const [insights, setInsights] = useState([]);

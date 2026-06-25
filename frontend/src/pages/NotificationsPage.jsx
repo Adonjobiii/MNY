@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, CheckCircle2, Archive, Trash2, Filter } from 'lucide-react';
+import { Bell, CheckCircle2, Archive, Filter } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import NotificationCard from '../components/notifications/NotificationCard';
 
@@ -18,7 +18,6 @@ export default function NotificationsPage() {
 
   const unreadCount = activeNotifications.filter(n => !n.isRead).length;
   const budgetCount = activeNotifications.filter(n => n.type === 'budget').length;
-  const goalCount = activeNotifications.filter(n => n.type === 'goal').length;
   const todayCount = activeNotifications.filter(n => {
     const today = new Date();
     const notifDate = new Date(n.timestamp);

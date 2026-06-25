@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, TrendingUp, DollarSign, Calendar, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, TrendingUp, Calendar, Trash2 } from 'lucide-react';
 
 export default function Investments() {
   const [investments, setInvestments] = useState([]);
@@ -23,13 +23,12 @@ export default function Investments() {
   };
 
   const [exchangeRate, setExchangeRate] = useState(22.95);
-  const [isFetchingRate, setIsFetchingRate] = useState(false);
+  const [isFetchingRate, setIsFetchingRate] = useState(true);
 
   useEffect(() => {
     fetchInvestments();
     
     // Fetch live QAR to INR exchange rate
-    setIsFetchingRate(true);
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/exchange-rate`)
       .then(res => res.json())
       .then(data => {

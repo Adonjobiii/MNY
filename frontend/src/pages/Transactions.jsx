@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Edit2, Trash2, X, Wallet, AlertCircle, DollarSign, Building2, CloudOff } from 'lucide-react';
 
 const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
+
+const getNextId = (offset = 0) => {
+  return Date.now() + offset;
+};
 
 const getLocalDateString = () => {
   const d = new Date();
@@ -17,10 +21,10 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [filters, setFilters] = useState({ type: 'All', category: 'All', startDate: '', endDate: '' });
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(() => !!location.state?.openAddModal);
   const [selectedAccount, setSelectedAccount] = useState('icici');
   const [activeAccount, setActiveAccount] = useState('all');
-  const [txType, setTxType] = useState('Expense');
+  const [txType, setTxType] = useState(() => location.state?.txType || 'Expense');
   const [dueAction, setDueAction] = useState('add');
   const [dueCurrency, setDueCurrency] = useState('INR');
   const [includeInBalance, setIncludeInBalance] = useState(false);
@@ -64,10 +68,6 @@ export default function Transactions() {
 
   useEffect(() => {
     if (location.state?.openAddModal) {
-      setIsAddModalOpen(true);
-      if (location.state.txType) {
-        setTxType(location.state.txType);
-      }
       // Clear state so it doesn't reopen on refresh
       window.history.replaceState({}, document.title);
     }
@@ -131,7 +131,7 @@ export default function Transactions() {
       const inAmount = requiresConversion ? outAmount * parseFloat(conversionRate) : outAmount;
 
       const outTx = {
-        id: Date.now(),
+        id: getNextId(),
         date: txDate,
         type: 'Expense',
         category: 'Transfer/Loan',
@@ -142,7 +142,7 @@ export default function Transactions() {
       };
 
       const inTx = {
-        id: Date.now() + 1,
+        id: getNextId(1),
         date: txDate,
         type: 'Income',
         category: 'Transfer/Loan',
@@ -185,7 +185,7 @@ export default function Transactions() {
     }
 
     const newTx = {
-      id: editId || Date.now(),
+      id: editId || getNextId(),
       date: txDate,
       type: txType,
       dueAction: txType === 'Dues' ? dueAction : null,

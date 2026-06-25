@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Target, TrendingUp, Plus, LayoutDashboard, Flame } from 'lucide-react';
 import GoalCard from '../components/goals/GoalCard';
-import AchievementCenter from '../components/goals/AchievementCenter';
 import GoalForecaster from '../components/goals/GoalForecaster';
-
-// Removed predefined mock goals
-const mockGoals = [];
+import AchievementCenter from '../components/goals/AchievementCenter';
 
 export default function Goals() {
   const [goals, setGoals] = useState([]);

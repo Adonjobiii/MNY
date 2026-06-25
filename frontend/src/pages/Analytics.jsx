@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { Download, Calendar } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b'];
 
@@ -9,7 +9,7 @@ export default function Analytics() {
   const [transactions, setTransactions] = useState([]);
   const [displayCurrency, setDisplayCurrency] = useState('INR');
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`)
       .then(res => res.json())
       .then(data => setTransactions(Array.isArray(data) ? data : []))
@@ -60,68 +60,6 @@ export default function Analytics() {
     return `${currencySymbol}${val}`;
   };
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const incomeObj = payload.find(p => p.dataKey === 'income');
-      const expensesObj = payload.find(p => p.dataKey === 'expenses');
-      
-      const income = incomeObj ? incomeObj.value : 0;
-      const expenses = expensesObj ? expensesObj.value : 0;
-      
-      let spendingPercentage = 0;
-      if (income > 0) {
-        spendingPercentage = Math.round((expenses / income) * 100);
-      } else if (expenses > 0) {
-        spendingPercentage = 100; // Infinity effectively, but cap for display
-      }
-      
-      let colorClass = "text-green-500";
-      if (spendingPercentage > 60) {
-        colorClass = "text-red-500";
-      } else if (spendingPercentage > 30) {
-        colorClass = "text-orange-500";
-      }
-
-      return (
-        <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
-          <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
-              {entry.name}: {currencySymbol}{entry.value.toLocaleString()}
-            </p>
-          ))}
-          <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
-            Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const PieCustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const total = categoryData.reduce((sum, item) => sum + item.value, 0);
-      const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
-      
-      return (
-        <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
-          <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.payload.fill }}></span>
-            {data.name}
-          </p>
-          <p className="text-sm mt-1">
-            {currencySymbol}{data.value.toLocaleString()}
-          </p>
-          <p className="text-sm font-bold text-slate-500 mt-1">
-            {percentage}% of Total Expenses
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -181,7 +119,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dy={10} />
                 <YAxis width={80} axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dx={-10} tickFormatter={formatYAxis} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip currencySymbol={currencySymbol} />} />
                 <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
               </AreaChart>
@@ -206,7 +144,7 @@ export default function Analytics() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<PieCustomTooltip />} />
+                <Tooltip content={<PieCustomTooltip currencySymbol={currencySymbol} categoryData={categoryData} />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -239,7 +177,7 @@ export default function Analytics() {
               <YAxis width={80} axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dx={-10} tickFormatter={formatYAxis} />
               <Tooltip 
                 cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                content={<CustomTooltip />}
+                content={<CustomTooltip currencySymbol={currencySymbol} />}
               />
               <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
@@ -250,3 +188,66 @@ export default function Analytics() {
     </div>
   );
 }
+
+const CustomTooltip = ({ active, payload, label, currencySymbol }) => {
+  if (active && payload && payload.length) {
+    const incomeObj = payload.find(p => p.dataKey === 'income');
+    const expensesObj = payload.find(p => p.dataKey === 'expenses');
+    
+    const income = incomeObj ? incomeObj.value : 0;
+    const expenses = expensesObj ? expensesObj.value : 0;
+    
+    let spendingPercentage = 0;
+    if (income > 0) {
+      spendingPercentage = Math.round((expenses / income) * 100);
+    } else if (expenses > 0) {
+      spendingPercentage = 100; // Infinity effectively, but cap for display
+    }
+    
+    let colorClass = "text-green-500";
+    if (spendingPercentage > 60) {
+      colorClass = "text-red-500";
+    } else if (spendingPercentage > 30) {
+      colorClass = "text-orange-500";
+    }
+
+    return (
+      <div className="bg-[var(--card)] border border-[var(--border)] p-4 rounded-2xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)]">
+        <p className="font-bold mb-2 text-[var(--foreground)]">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+            {entry.name}: {currencySymbol}{entry.value.toLocaleString()}
+          </p>
+        ))}
+        <p className={`text-sm font-bold mt-2 pt-2 border-t border-[var(--border)] ${colorClass}`}>
+          Spending: {income === 0 && expenses > 0 ? '> 100' : spendingPercentage}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const PieCustomTooltip = ({ active, payload, currencySymbol, categoryData }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const total = categoryData.reduce((sum, item) => sum + item.value, 0);
+    const percentage = total > 0 ? Math.round((data.value / total) * 100) : 0;
+    
+    return (
+      <div className="bg-[var(--card)] border border-[var(--border)] p-3 rounded-xl shadow-lg">
+        <p className="font-bold text-[var(--foreground)] flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.payload.fill }}></span>
+          {data.name}
+        </p>
+        <p className="text-sm mt-1">
+          {currencySymbol}{data.value.toLocaleString()}
+        </p>
+        <p className="text-sm font-bold text-slate-500 mt-1">
+          {percentage}% of Total Expenses
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
