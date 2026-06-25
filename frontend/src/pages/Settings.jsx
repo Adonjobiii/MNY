@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Moon, Sun, Bell, Database, Lock, Globe, Shield, Download, Trash2, Smartphone } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Database, Globe, Shield, Download, Trash2, Smartphone } from 'lucide-react';
 
 export default function Settings() {
   const [notifications, setNotifications] = useState(true);

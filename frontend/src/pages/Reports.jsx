@@ -17,6 +17,7 @@ export default function Reports() {
   });
 
   const handlePrevMonth = () => {
+    setIsLoading(true);
     setSelectedDate(prev => {
       const d = new Date(prev);
       d.setMonth(d.getMonth() - 1);
@@ -25,6 +26,7 @@ export default function Reports() {
   };
 
   const handleNextMonth = () => {
+    setIsLoading(true);
     setSelectedDate(prev => {
       const d = new Date(prev);
       d.setMonth(d.getMonth() + 1);
@@ -33,7 +35,6 @@ export default function Reports() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
     // Fetch all needed data
     Promise.all([
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`).then(res => res.json()),
@@ -114,7 +115,6 @@ export default function Reports() {
       const pm = calculateMetrics(prevMonthTxs.filter(t => !isQAR(t)));
 
       const cmQAR = calculateMetrics(currentMonthTxs.filter(t => isQAR(t)));
-      const pmQAR = calculateMetrics(prevMonthTxs.filter(t => isQAR(t)));
 
       const calcMoM = (current, prev) => {
         if (!isComparisonValid) return null;
