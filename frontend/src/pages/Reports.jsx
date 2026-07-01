@@ -7,7 +7,6 @@ export default function Reports() {
   const componentRef = useRef();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [displayCurrency, setDisplayCurrency] = useState('QAR');
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
@@ -119,8 +118,10 @@ export default function Reports() {
         };
       };
 
-      const cm = calculateMetrics(currentMonthTxs.filter(t => displayCurrency === 'QAR' ? isQAR(t) : !isQAR(t)));
-      const pm = calculateMetrics(prevMonthTxs.filter(t => displayCurrency === 'QAR' ? isQAR(t) : !isQAR(t)));
+      const cmINR = calculateMetrics(currentMonthTxs.filter(t => !isQAR(t)));
+      const cmQAR = calculateMetrics(currentMonthTxs.filter(t => isQAR(t)));
+      const pmINR = calculateMetrics(prevMonthTxs.filter(t => !isQAR(t)));
+      const pmQAR = calculateMetrics(prevMonthTxs.filter(t => isQAR(t)));
 
       const calcMoM = (current, prev) => {
         if (!isComparisonValid) return null;
@@ -128,37 +129,55 @@ export default function Reports() {
         return Math.round(((current - prev) / prev) * 100);
       };
 
-      const momIncome = calcMoM(cm.totalIncome, pm.totalIncome);
-      const momExpenses = calcMoM(cm.totalExpenses, pm.totalExpenses);
-      const momNet = calcMoM(cm.totalIncome - cm.totalExpenses, pm.totalIncome - pm.totalExpenses);
+      const momIncomeINR = calcMoM(cmINR.totalIncome, pmINR.totalIncome);
+      const momExpensesINR = calcMoM(cmINR.totalExpenses, pmINR.totalExpenses);
+      const momNetINR = calcMoM(cmINR.totalIncome - cmINR.totalExpenses, pmINR.totalIncome - pmINR.totalExpenses);
 
-      // Prepare report data object
+      const momIncomeQAR = calcMoM(cmQAR.totalIncome, pmQAR.totalIncome);
+      const momExpensesQAR = calcMoM(cmQAR.totalExpenses, pmQAR.totalExpenses);
+      const momNetQAR = calcMoM(cmQAR.totalIncome - cmQAR.totalExpenses, pmQAR.totalIncome - pmQAR.totalExpenses);
+
+      const healthScoreINR = cmINR.totalIncome === 0 && cmINR.totalExpenses === 0 ? 0 : cmINR.totalIncome === 0 ? 0 : Math.max(0, Math.round(((cmINR.totalIncome - cmINR.totalExpenses) / cmINR.totalIncome) * 100));
+      const healthScoreQAR = cmQAR.totalIncome === 0 && cmQAR.totalExpenses === 0 ? 0 : cmQAR.totalIncome === 0 ? 0 : Math.max(0, Math.round(((cmQAR.totalIncome - cmQAR.totalExpenses) / cmQAR.totalIncome) * 100));
+      const healthScore = Math.max(healthScoreINR, healthScoreQAR);
+
       const reportData = {
         userName: 'User',
         monthYear: selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' }),
-        healthScore: cm.totalIncome === 0 && cm.totalExpenses === 0 ? 0 : cm.totalIncome === 0 ? 0 : Math.max(0, Math.round(((cm.totalIncome - cm.totalExpenses) / cm.totalIncome) * 100)),
-        healthStatus: cm.totalIncome >= cm.totalExpenses ? 'Healthy' : 'Needs Attention',
-        healthSummary: cm.totalIncome >= cm.totalExpenses ? 'Positive cash flow maintained this month.' : 'Deficit detected. Reduce spending.',
-        netWorth: 0, 
-        totalSavings: Math.max(0, cm.totalIncome - cm.totalExpenses),
-        totalIncome: cm.totalIncome,
-        totalExpenses: cm.totalExpenses,
-        totalDebt: cm.totalDebt,
-        currency: displayCurrency,
-        totalAtmWithdrawals: cm.totalAtmWithdrawals,
-        totalBankTransfers: cm.totalBankTransfers,
-        netCashFlow: cm.totalIncome - cm.totalExpenses,
-        momIncome,
-        momExpenses,
-        momNet,
+        healthScore: healthScore,
+        healthStatus: (cmINR.totalIncome >= cmINR.totalExpenses && cmQAR.totalIncome >= cmQAR.totalExpenses) ? 'Healthy' : 'Needs Attention',
+        healthSummary: 'Combined cash flow assessment.',
+        netWorthINR: 0, 
+        netWorthQAR: 0,
+        totalSavingsINR: Math.max(0, cmINR.totalIncome - cmINR.totalExpenses),
+        totalSavingsQAR: Math.max(0, cmQAR.totalIncome - cmQAR.totalExpenses),
+        totalIncomeINR: cmINR.totalIncome,
+        totalIncomeQAR: cmQAR.totalIncome,
+        totalExpensesINR: cmINR.totalExpenses,
+        totalExpensesQAR: cmQAR.totalExpenses,
+        totalDebtINR: cmINR.totalDebt,
+        totalDebtQAR: cmQAR.totalDebt,
+        totalAtmWithdrawalsINR: cmINR.totalAtmWithdrawals,
+        totalAtmWithdrawalsQAR: cmQAR.totalAtmWithdrawals,
+        totalBankTransfersINR: cmINR.totalBankTransfers,
+        totalBankTransfersQAR: cmQAR.totalBankTransfers,
+        netCashFlowINR: cmINR.totalIncome - cmINR.totalExpenses,
+        netCashFlowQAR: cmQAR.totalIncome - cmQAR.totalExpenses,
+        momIncomeINR, momExpensesINR, momNetINR,
+        momIncomeQAR, momExpensesQAR, momNetQAR,
         isComparisonValid,
         investmentGain: 0,
         budgetCompliance: 100, 
-        incomeSources: cm.incomeSources.length > 0 ? cm.incomeSources : [{ name: 'No Income', amount: 0 }],
-        expenseCategories: cm.expenseCategories.length > 0 ? cm.expenseCategories : [{ name: 'No Expenses', amount: 0 }],
-        highestExpenseCategory: cm.highestExpenseCategory,
-        lowestExpenseCategory: cm.lowestExpenseCategory,
-        avgDailySpend: Math.round(cm.totalExpenses / Math.max(1, new Date().getDate())), // Avoid /0
+        incomeSourcesINR: cmINR.incomeSources.length > 0 ? cmINR.incomeSources : [{ name: 'No Income', amount: 0 }],
+        incomeSourcesQAR: cmQAR.incomeSources.length > 0 ? cmQAR.incomeSources : [{ name: 'No Income', amount: 0 }],
+        expenseCategoriesINR: cmINR.expenseCategories.length > 0 ? cmINR.expenseCategories : [{ name: 'No Expenses', amount: 0 }],
+        expenseCategoriesQAR: cmQAR.expenseCategories.length > 0 ? cmQAR.expenseCategories : [{ name: 'No Expenses', amount: 0 }],
+        highestExpenseCategoryINR: cmINR.highestExpenseCategory,
+        highestExpenseCategoryQAR: cmQAR.highestExpenseCategory,
+        lowestExpenseCategoryINR: cmINR.lowestExpenseCategory,
+        lowestExpenseCategoryQAR: cmQAR.lowestExpenseCategory,
+        avgDailySpendINR: Math.round(cmINR.totalExpenses / Math.max(1, new Date().getDate())), 
+        avgDailySpendQAR: Math.round(cmQAR.totalExpenses / Math.max(1, new Date().getDate())), 
         budgets: [], 
         goals: [], 
         invested: investments.reduce((sum, i) => sum + i.amount, 0),
@@ -167,13 +186,13 @@ export default function Reports() {
         accounts: [],
         duesData: transactions.filter(t => t.type === 'Dues'),
         insights: [
-          `You spent ₹${cm.totalExpenses.toLocaleString()} this month.`,
-          cm.totalDebt > 0 ? `You have ₹${cm.totalDebt.toLocaleString()} in new debts.` : 'No new debts recorded this month.'
+          `You spent ₹${cmINR.totalExpenses.toLocaleString()} and QAR ${cmQAR.totalExpenses.toLocaleString()} this month.`,
+          (cmINR.totalDebt > 0 || cmQAR.totalDebt > 0) ? `You have ₹${cmINR.totalDebt.toLocaleString()} | QAR ${cmQAR.totalDebt.toLocaleString()} in new debts.` : 'No new debts recorded this month.'
         ],
         recommendations: [
-          cm.totalIncome > cm.totalExpenses ? 'Continue your savings strategy.' : 'Review your expenses to find areas to cut back.'
+          'Review your combined expenses to find areas to cut back.'
         ],
-        conclusion: `Monthly summary: Income ₹${cm.totalIncome.toLocaleString()} | Expenses ₹${cm.totalExpenses.toLocaleString()} | Net Cash Flow ₹${(cm.totalIncome - cm.totalExpenses).toLocaleString()}.`
+        conclusion: `Monthly summary: Income ₹${cmINR.totalIncome.toLocaleString()} | QAR ${cmQAR.totalIncome.toLocaleString()} - Expenses ₹${cmINR.totalExpenses.toLocaleString()} | QAR ${cmQAR.totalExpenses.toLocaleString()}`
       };
 
       setData(reportData);
@@ -182,7 +201,7 @@ export default function Reports() {
       console.error(err);
       setIsLoading(false);
     });
-  }, [selectedDate, displayCurrency]);
+  }, [selectedDate]);
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
@@ -224,18 +243,6 @@ export default function Reports() {
             <button onClick={handleNextMonth} className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors">
               <ChevronRight size={20} />
             </button>
-          </div>
-
-          <div className="flex gap-2 p-1 glass rounded-xl mx-4">
-            {['INR', 'QAR'].map(cur => (
-              <button
-                key={cur}
-                onClick={() => { setIsLoading(true); setDisplayCurrency(cur); }}
-                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${displayCurrency === cur ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-70 hover:opacity-100'}`}
-              >
-                {cur}
-              </button>
-            ))}
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">

@@ -26,11 +26,11 @@ const ReportCover = ({ data }) => (
       </div>
       <div className="border-l border-r border-slate-200 overflow-hidden px-2 md:px-4 flex flex-col justify-center min-w-0">
         <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Net Worth</p>
-        <p className="text-xl md:text-3xl font-black text-slate-800 truncate" title={`₹${data.netWorth.toLocaleString()}`}>{data.currency === "QAR" ? "QAR " : "₹"}{data.netWorth.toLocaleString()}</p>
+        <p className="text-xl md:text-3xl font-black text-slate-800 truncate" title={`₹${data.netWorthINR.toLocaleString()} | QAR ${data.netWorthQAR.toLocaleString()}`}>₹ {data.netWorthINR.toLocaleString()} | QAR {data.netWorthQAR.toLocaleString()}</p>
       </div>
       <div className="overflow-hidden flex flex-col justify-center min-w-0">
         <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Saved</p>
-        <p className="text-xl md:text-3xl font-black text-emerald-600 truncate" title={`₹${data.totalSavings.toLocaleString()}`}>{data.currency === "QAR" ? "QAR " : "₹"}{data.totalSavings.toLocaleString()}</p>
+        <p className="text-xl md:text-3xl font-black text-emerald-600 truncate" title={`₹${data.totalSavingsINR.toLocaleString()} | QAR ${data.totalSavingsQAR.toLocaleString()}`}>₹ {data.totalSavingsINR.toLocaleString()} | QAR {data.totalSavingsQAR.toLocaleString()}</p>
       </div>
     </div>
 
@@ -70,20 +70,19 @@ const ExecutiveSummary = ({ data }) => {
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Total Income</span>
             <span className="font-bold text-emerald-600 text-xl flex items-center">
-              {data.currency === "QAR" ? "QAR " : "₹"}{data.totalIncome.toLocaleString()} {formatMoM(data.momIncome)}
+              ₹ {data.totalIncomeINR.toLocaleString()} | QAR {data.totalIncomeQAR.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Total Expenses</span>
             <span className="font-bold text-red-600 text-xl flex items-center">
-              {data.currency === "QAR" ? "QAR " : "₹"}{data.totalExpenses.toLocaleString()} {formatMoM(data.momExpenses)}
+              ₹ {data.totalExpensesINR.toLocaleString()} | QAR {data.totalExpensesQAR.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="font-bold text-slate-800 text-lg">Net Cash Flow</span>
-            <span className={`font-black text-2xl flex items-center ${data.netCashFlow > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {data.netCashFlow > 0 ? '+' : ''}{data.currency === "QAR" ? "QAR " : "₹"}{data.netCashFlow.toLocaleString()}
-              {formatMoM(data.momNet)}
+            <span className="font-black text-2xl flex items-center text-slate-800">
+              ₹ {data.netCashFlowINR > 0 ? '+' : ''}{data.netCashFlowINR.toLocaleString()} | QAR {data.netCashFlowQAR > 0 ? '+' : ''}{data.netCashFlowQAR.toLocaleString()}
             </span>
           </div>
         </div>
@@ -94,11 +93,11 @@ const ExecutiveSummary = ({ data }) => {
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Total Savings</span>
-            <span className="font-bold text-emerald-600 text-xl">{data.currency === "QAR" ? "QAR " : "₹"}{data.totalSavings.toLocaleString()}</span>
+            <span className="font-bold text-emerald-600 text-xl">₹ {data.totalSavingsINR.toLocaleString()} | QAR {data.totalSavingsQAR.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
             <span className="font-medium text-slate-600">Investment Gain</span>
-            <span className="font-bold text-purple-600 text-xl">{data.currency === "QAR" ? "QAR " : "₹"}{data.investmentGain.toLocaleString()}</span>
+            <span className="font-bold text-purple-600 text-xl">₹ {data.investmentGain.toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="font-bold text-slate-800 text-lg">Budget Compliance</span>
@@ -129,26 +128,37 @@ const ExecutiveSummary = ({ data }) => {
 };
 
 const IncomeExpenseAnalysis = ({ data }) => {
-  // Chart Data Preparation
-  const chartData = data.expenseCategories.map(cat => ({
-    name: cat.name,
-    amount: cat.amount
-  })).slice(0, 5); // Top 5 for the chart
+  const combinedCategoriesMap = {};
+  
+  (data.expenseCategoriesINR || []).forEach(c => {
+    if (c.name !== 'No Expenses') {
+      if (!combinedCategoriesMap[c.name]) combinedCategoriesMap[c.name] = { name: c.name, inr: 0, qar: 0, plotValue: 0 };
+      combinedCategoriesMap[c.name].inr += c.amount;
+      combinedCategoriesMap[c.name].plotValue += c.amount;
+    }
+  });
+
+  (data.expenseCategoriesQAR || []).forEach(c => {
+    if (c.name !== 'No Expenses') {
+      if (!combinedCategoriesMap[c.name]) combinedCategoriesMap[c.name] = { name: c.name, inr: 0, qar: 0, plotValue: 0 };
+      combinedCategoriesMap[c.name].qar += c.amount;
+      combinedCategoriesMap[c.name].plotValue += (c.amount * 23); // scaling for visual proportions
+    }
+  });
+
+  const pieData = Object.values(combinedCategoriesMap).sort((a, b) => b.plotValue - a.plotValue);
+  const chartData = pieData.slice(0, 5); // Top 5 for the chart
 
   const PieCustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const pData = payload[0].payload;
-      const total = data.totalExpenses;
-      const percentage = total > 0 ? Math.round((pData.value / total) * 100) : 0;
-      
       return (
         <div className="bg-white border border-slate-100 p-3 rounded-xl shadow-xl text-slate-800">
           <p className="font-bold flex items-center gap-2 text-sm">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: pData.payload.fill }}></span>
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: pData.fill }}></span>
             {pData.name}
           </p>
-          <p className="text-sm mt-1">{data.currency === "QAR" ? "QAR " : "₹"}{pData.value.toLocaleString()}</p>
-          <p className="text-xs font-bold text-slate-400 mt-1">{percentage}% of Total</p>
+          <p className="text-sm mt-1">₹ {pData.inr.toLocaleString()} | QAR {pData.qar.toLocaleString()}</p>
         </div>
       );
     }
@@ -165,10 +175,18 @@ const IncomeExpenseAnalysis = ({ data }) => {
         <div>
           <h3 className="text-2xl font-bold text-slate-800 mb-6">Income Breakdown</h3>
           <div className="space-y-3">
-            {data.incomeSources.map(inc => (
-              <div key={inc.name} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+            {data.incomeSourcesINR.length > 0 && <div className="text-xs font-bold text-slate-400 uppercase">INR Income</div>}
+            {data.incomeSourcesINR.map(inc => (
+              <div key={'inr'+inc.name} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <span className="font-medium">{inc.name}</span>
-                <span className="font-bold text-emerald-600">{data.currency === "QAR" ? "QAR " : "₹"}{inc.amount.toLocaleString()}</span>
+                <span className="font-bold text-emerald-600">₹ {inc.amount.toLocaleString()}</span>
+              </div>
+            ))}
+            {data.incomeSourcesQAR.length > 0 && <div className="text-xs font-bold text-slate-400 uppercase mt-2">QAR Income</div>}
+            {data.incomeSourcesQAR.map(inc => (
+              <div key={'qar'+inc.name} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="font-medium">{inc.name}</span>
+                <span className="font-bold text-emerald-600">QAR {inc.amount.toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -181,7 +199,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
               <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><CreditCard size={20} /></div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-slate-500 uppercase">Total Debt Issued</p>
-                <p className="font-bold text-indigo-600 text-lg">{data.currency === "QAR" ? "QAR " : "₹"}{data.totalDebt.toLocaleString()}</p>
+                <p className="font-bold text-indigo-600 text-lg">₹ {data.totalDebtINR.toLocaleString()} | QAR {data.totalDebtQAR.toLocaleString()}</p>
               </div>
             </div>
             
@@ -189,7 +207,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Building size={20} /></div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-slate-500 uppercase">Bank Transfers</p>
-                <p className="font-bold text-blue-600 text-lg">{data.currency === "QAR" ? "QAR " : "₹"}{data.totalBankTransfers.toLocaleString()}</p>
+                <p className="font-bold text-blue-600 text-lg">₹ {data.totalBankTransfersINR.toLocaleString()} | QAR {data.totalBankTransfersQAR.toLocaleString()}</p>
               </div>
             </div>
 
@@ -197,7 +215,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
               <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Banknote size={20} /></div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-slate-500 uppercase">ATM Withdrawals</p>
-                <p className="font-bold text-purple-600 text-lg">{data.currency === "QAR" ? "QAR " : "₹"}{data.totalAtmWithdrawals.toLocaleString()}</p>
+                <p className="font-bold text-purple-600 text-lg">₹ {data.totalAtmWithdrawalsINR.toLocaleString()} | QAR {data.totalAtmWithdrawalsQAR.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -212,8 +230,8 @@ const IncomeExpenseAnalysis = ({ data }) => {
             <h4 className="text-center font-bold text-slate-500 mb-4 uppercase tracking-wide">Expense Distribution</h4>
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPieChart>
-                <Pie data={data.expenseCategories} dataKey="amount" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
-                  {data.expenseCategories.map((entry, index) => (
+                <Pie data={pieData} dataKey="plotValue" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
+                  {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
@@ -226,9 +244,9 @@ const IncomeExpenseAnalysis = ({ data }) => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
-                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
+                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${Math.round(val/1000)}k`} />
+                <Tooltip cursor={{ fill: '#f1f5f9' }} content={<PieCustomTooltip />} />
+                <Bar dataKey="plotValue" radius={[6, 6, 0, 0]}>
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                   ))}
@@ -242,9 +260,11 @@ const IncomeExpenseAnalysis = ({ data }) => {
               <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1 flex items-center gap-2">
                 <TrendingUp size={14} className="text-red-500" /> Highest Spend
               </p>
-              <p className="font-black text-slate-800 text-xl">{data.highestExpenseCategory}</p>
-              {data.expenseCategories[0] && (
-                <p className="text-red-600 font-bold mt-1">{data.currency === "QAR" ? "QAR " : "₹"}{data.expenseCategories[0].amount.toLocaleString()}</p>
+              <p className="font-black text-slate-800 text-lg leading-tight mt-2">
+                {pieData[0] ? pieData[0].name : 'None'}
+              </p>
+              {pieData[0] && (
+                <p className="text-red-600 font-bold mt-1 text-sm">₹ {pieData[0].inr.toLocaleString()} | QAR {pieData[0].qar.toLocaleString()}</p>
               )}
             </div>
             
@@ -283,11 +303,11 @@ const BudgetGoalsAnalysis = ({ data }) => (
               <div className="flex justify-between items-end mb-4">
                 <div>
                   <h4 className="text-lg font-bold text-slate-800">{b.name}</h4>
-                  <p className="text-sm font-medium text-slate-500">Allocated: {data.currency === "QAR" ? "QAR " : "₹"}{b.allocated.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-slate-500">Allocated: ₹ {b.allocated.toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-bold text-lg ${util > 100 ? 'text-red-600' : 'text-slate-800'}`}>Used: {data.currency === "QAR" ? "QAR " : "₹"}{b.used.toLocaleString()}</p>
-                  <p className="text-sm font-medium text-slate-500">Remaining: {data.currency === "QAR" ? "QAR " : "₹"}{Math.max(0, b.allocated - b.used).toLocaleString()}</p>
+                  <p className={`font-bold text-lg ${util > 100 ? 'text-red-600' : 'text-slate-800'}`}>Used: ₹ {b.used.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-slate-500">Remaining: ₹ {Math.max(0, b.allocated - b.used).toLocaleString()}</p>
                 </div>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-3">
@@ -306,7 +326,7 @@ const BudgetGoalsAnalysis = ({ data }) => (
           <div key={g.name} className="p-6 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
             <div>
               <h4 className="text-lg font-bold text-slate-800 mb-1">{g.name}</h4>
-              <p className="text-sm font-medium text-slate-500 mb-3">{data.currency === "QAR" ? "QAR " : "₹"}{g.saved.toLocaleString()} / {data.currency === "QAR" ? "QAR " : "₹"}{g.target.toLocaleString()}</p>
+              <p className="text-sm font-medium text-slate-500 mb-3">₹ {g.saved.toLocaleString()} / ₹ {g.target.toLocaleString()}</p>
               <p className="text-xs font-bold text-blue-600 bg-blue-100 inline-block px-2 py-1 rounded">ETA: {g.eta}</p>
             </div>
             <div className="w-16 h-16 rounded-full border-4 border-blue-500 flex items-center justify-center font-bold text-slate-800">
@@ -329,15 +349,15 @@ const InvestmentAndAI = ({ data }) => (
         <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex justify-between border-b border-slate-200 pb-2">
             <span className="text-slate-600 font-medium">Total Invested</span>
-            <span className="font-bold">{data.currency === "QAR" ? "QAR " : "₹"}{data.invested.toLocaleString()}</span>
+            <span className="font-bold">₹ {data.invested.toLocaleString()}</span>
           </div>
           <div className="flex justify-between border-b border-slate-200 pb-2">
             <span className="text-slate-600 font-medium">Current Value</span>
-            <span className="font-bold text-blue-600">{data.currency === "QAR" ? "QAR " : "₹"}{data.portfolioValue.toLocaleString()}</span>
+            <span className="font-bold text-blue-600">₹ {data.portfolioValue.toLocaleString()}</span>
           </div>
           <div className="flex justify-between border-b border-slate-200 pb-2">
             <span className="text-slate-600 font-medium">Profit / Loss</span>
-            <span className="font-bold text-emerald-600">+{data.currency === "QAR" ? "QAR " : "₹"}{data.investmentGain.toLocaleString()}</span>
+            <span className="font-bold text-emerald-600">+₹ {data.investmentGain.toLocaleString()}</span>
           </div>
           <div className="flex justify-between pt-2">
             <span className="text-slate-600 font-medium">ROI</span>
