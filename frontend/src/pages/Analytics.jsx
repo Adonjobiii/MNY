@@ -6,6 +6,7 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b'];
 
 export default function Analytics() {
   const [timeframe, setTimeframe] = useState('1M');
+  const [selectedWeek, setSelectedWeek] = useState(1);
   const [transactions, setTransactions] = useState([]);
   const [displayCurrency, setDisplayCurrency] = useState('QAR');
 
@@ -24,11 +25,34 @@ export default function Analytics() {
 
   const processTimeData = (txs, tf) => {
     const grouped = {};
+    const now = new Date();
+    
+    if (tf === '1M') {
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) {
+        const k = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        grouped[k] = { name: k, income: 0, expenses: 0 };
+      }
+    } else if (tf === '1W') {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        grouped[k] = { name: k, income: 0, expenses: 0 };
+      }
+    }
+
     txs.forEach(t => {
       let key = t.date || ''; // YYYY-MM-DD
       if (tf === '6M' || tf === '1Y') {
         key = key.substring(0, 7); // YYYY-MM
+        if (!grouped[key]) grouped[key] = { name: key, income: 0, expenses: 0 };
+      } else if (tf === '1M' && key.substring(0, 7) !== `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`) {
+        return; // Skip if not current month
+      } else if (tf === '1W' && !grouped[key]) {
+        return; // Skip if not in last 7 days
       }
+      
       if (!grouped[key]) grouped[key] = { name: key, income: 0, expenses: 0 };
       if (t.type === 'Income') {
         grouped[key].income += (Number(t.amount) || 0);
@@ -40,8 +64,6 @@ export default function Analytics() {
 
     const sorted = Object.values(grouped).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
-    if (tf === '1W') return sorted.slice(-7);
-    if (tf === '1M') return sorted.slice(-30);
     if (tf === '6M') return sorted.slice(-6);
     if (tf === '1Y') return sorted.slice(-12);
     return sorted;
@@ -173,10 +195,23 @@ export default function Analytics() {
       </div>
       
       <div className="glass-panel rounded-3xl p-6 hover:shadow-2xl transition-all duration-300">
-        <h2 className="text-xl font-bold mb-6">Monthly Cash Flow Comparison</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold">Monthly Cash Flow Comparison</h2>
+          {timeframe === '1M' && (
+            <select 
+              value={selectedWeek} 
+              onChange={(e) => setSelectedWeek(Number(e.target.value))}
+              className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 text-[var(--foreground)]"
+            >
+              {Array.from({ length: Math.ceil(data.length / 7) }).map((_, i) => (
+                <option key={i+1} value={i+1}>Week {i+1}</option>
+              ))}
+            </select>
+          )}
+        </div>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.slice(0, 7)}>
+            <BarChart data={timeframe === '1M' ? data.slice((selectedWeek - 1) * 7, selectedWeek * 7) : data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dy={10} />
               <YAxis width={80} axisLine={false} tickLine={false} tick={{fill: 'var(--foreground)', opacity: 0.5}} dx={-10} tickFormatter={formatYAxis} />
