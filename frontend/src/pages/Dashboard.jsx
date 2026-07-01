@@ -83,13 +83,19 @@ export default function Dashboard() {
   });
 
   const getBalance = (accountName) => {
+    const isQarAccount = accountName.includes('Qatar');
+    
     return transactions
-      .filter(tx => tx.mode === accountName || tx.mode === `UPI (${accountName})`)
+      .filter(tx => 
+        tx.mode === accountName || 
+        tx.mode === `UPI (${accountName})` ||
+        (tx.type === 'Debt' && (isQarAccount ? isQAR(tx) : !isQAR(tx)))
+      )
       .reduce((acc, tx) => {
-        if (tx.type === 'Income') return acc + tx.amount;
-        if (tx.type === 'Expense') return acc - tx.amount;
+        if (tx.type === 'Income' && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) return acc + tx.amount;
+        if (tx.type === 'Expense' && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) return acc - tx.amount;
         if (tx.type === 'Debt') return acc - tx.amount;
-        if (tx.type === 'Dues' && tx.includeInBalance) {
+        if (tx.type === 'Dues' && tx.includeInBalance && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) {
           if (tx.dueAction === 'add') return acc - tx.amount;
           if (tx.dueAction === 'settle') return acc + tx.amount;
         }
@@ -182,6 +188,7 @@ export default function Dashboard() {
 
   const expensesByCategory = displayTransactions
     .filter(t => {
+      if (!isCurrentMonth(t.date)) return false;
       if (selectedAccount === 'total_dues') return t.type === 'Dues' && t.dueAction === 'add';
       if (selectedAccount === 'total_debt') return t.type === 'Debt';
       return t.type === 'Expense';
