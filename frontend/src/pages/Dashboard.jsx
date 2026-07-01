@@ -197,7 +197,9 @@ export default function Dashboard() {
     color: COLORS[index % COLORS.length]
   }));
 
-  const flowByDate = displayTransactions.reduce((acc, t) => {
+  const flowByDate = displayTransactions
+    .filter(t => isCurrentMonth(t.date))
+    .reduce((acc, t) => {
     if (!acc[t.date]) acc[t.date] = { date: t.date, Income: 0, Expense: 0, Dues: 0, Debt: 0 };
     if (selectedAccount === 'total_dues') {
       if (t.type === 'Dues' && t.dueAction === 'settle') acc[t.date].Income += t.amount;
@@ -212,7 +214,7 @@ export default function Dashboard() {
     }
     return acc;
   }, {});
-  const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-7);
+  const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
 
 
   return (
@@ -318,7 +320,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2 glass-panel rounded-3xl p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Cash Flow (This Week)</h2>
+              <h2 className="text-xl font-semibold">Cash Flow (This Month)</h2>
               <div className="text-sm font-bold opacity-50">{activeDisplayCurrency === 'INR' ? '₹ Rupees' : 'QAR Riyal'}</div>
             </div>
             {flowData.length > 0 ? (
