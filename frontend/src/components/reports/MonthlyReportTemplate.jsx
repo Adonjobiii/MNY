@@ -272,15 +272,17 @@ const IncomeExpenseAnalysis = ({ data }) => {
               <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1 flex items-center gap-2">
                 <TrendingUp size={14} className="rotate-180" /> Lowest Spend
               </p>
-              <p className="font-black text-slate-800 text-xl">{data.lowestExpenseCategory}</p>
-              {data.expenseCategories[data.expenseCategories.length - 1] && (
-                <p className="text-emerald-600 font-bold mt-1">{data.currency === "QAR" ? "QAR " : "₹"}{data.expenseCategories[data.expenseCategories.length - 1].amount.toLocaleString()}</p>
+              <p className="font-black text-slate-800 text-lg leading-tight mt-2">
+                {pieData[pieData.length - 1] ? pieData[pieData.length - 1].name : 'None'}
+              </p>
+              {pieData[pieData.length - 1] && (
+                <p className="text-emerald-600 font-bold mt-1 text-sm">₹ {pieData[pieData.length - 1].inr.toLocaleString()} | QAR {pieData[pieData.length - 1].qar.toLocaleString()}</p>
               )}
             </div>
 
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Avg Daily Spend</p>
-              <p className="font-black text-slate-800 text-2xl">{data.currency === "QAR" ? "QAR " : "₹"}{data.avgDailySpend.toLocaleString()}</p>
+              <p className="font-black text-slate-800 text-lg mt-2">₹ {(data.avgDailySpendINR || 0).toLocaleString()} | QAR {(data.avgDailySpendQAR || 0).toLocaleString()}</p>
             </div>
           </div>
         </div>
