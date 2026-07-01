@@ -7,6 +7,7 @@ export default function Reports() {
   const componentRef = useRef();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayCurrency, setDisplayCurrency] = useState('QAR');
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
@@ -37,8 +38,14 @@ export default function Reports() {
   useEffect(() => {
     // Fetch all needed data
     Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`).then(res => res.json()),
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/investments`).then(res => res.json()).catch(() => [])
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`)
+        .then(res => res.json())
+        .then(data => Array.isArray(data) ? data : [])
+        .catch(() => []),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/investments`)
+        .then(res => res.json())
+        .then(data => Array.isArray(data) ? data : [])
+        .catch(() => [])
     ]).then(([transactions, investments]) => {
       const currentMonth = selectedDate.getMonth();
       const currentYear = selectedDate.getFullYear();
@@ -73,19 +80,20 @@ export default function Reports() {
         const incomeSourcesMap = {};
 
         txs.forEach(tx => {
+          const amt = Number(tx.amount) || 0;
           if (tx.type === 'Income' && tx.category !== 'Transfer/Loan') {
-            totalIncome += tx.amount;
-            incomeSourcesMap[tx.category] = (incomeSourcesMap[tx.category] || 0) + tx.amount;
+            totalIncome += amt;
+            incomeSourcesMap[tx.category] = (incomeSourcesMap[tx.category] || 0) + amt;
           } else if (tx.type === 'Expense' && tx.category !== 'Transfer/Loan') {
-            totalExpenses += tx.amount;
-            expenseCategoriesMap[tx.category] = (expenseCategoriesMap[tx.category] || 0) + tx.amount;
+            totalExpenses += amt;
+            expenseCategoriesMap[tx.category] = (expenseCategoriesMap[tx.category] || 0) + amt;
           } else if (tx.type === 'Debt') {
-            totalDebt += tx.amount;
+            totalDebt += amt;
           } else if (tx.category === 'Transfer/Loan' && tx.type === 'Expense') {
-            if (tx.description.includes('Cash')) {
-              totalAtmWithdrawals += tx.amount;
+            if (tx.description && tx.description.includes('Cash')) {
+              totalAtmWithdrawals += amt;
             } else {
-              totalBankTransfers += tx.amount;
+              totalBankTransfers += amt;
             }
           }
         });
@@ -111,10 +119,8 @@ export default function Reports() {
         };
       };
 
-      const cm = calculateMetrics(currentMonthTxs.filter(t => !isQAR(t)));
-      const pm = calculateMetrics(prevMonthTxs.filter(t => !isQAR(t)));
-
-      const cmQAR = calculateMetrics(currentMonthTxs.filter(t => isQAR(t)));
+      const cm = calculateMetrics(currentMonthTxs.filter(t => displayCurrency === 'QAR' ? isQAR(t) : !isQAR(t)));
+      const pm = calculateMetrics(prevMonthTxs.filter(t => displayCurrency === 'QAR' ? isQAR(t) : !isQAR(t)));
 
       const calcMoM = (current, prev) => {
         if (!isComparisonValid) return null;
@@ -138,12 +144,10 @@ export default function Reports() {
         totalIncome: cm.totalIncome,
         totalExpenses: cm.totalExpenses,
         totalDebt: cm.totalDebt,
+        currency: displayCurrency,
         totalAtmWithdrawals: cm.totalAtmWithdrawals,
         totalBankTransfers: cm.totalBankTransfers,
         netCashFlow: cm.totalIncome - cm.totalExpenses,
-        totalIncomeQAR: cmQAR.totalIncome,
-        totalExpensesQAR: cmQAR.totalExpenses,
-        totalSavingsQAR: Math.max(0, cmQAR.totalIncome - cmQAR.totalExpenses),
         momIncome,
         momExpenses,
         momNet,
@@ -178,7 +182,7 @@ export default function Reports() {
       console.error(err);
       setIsLoading(false);
     });
-  }, [selectedDate]);
+  }, [selectedDate, displayCurrency]);
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
@@ -220,6 +224,18 @@ export default function Reports() {
             <button onClick={handleNextMonth} className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors">
               <ChevronRight size={20} />
             </button>
+          </div>
+
+          <div className="flex gap-2 p-1 glass rounded-xl mx-4">
+            {['INR', 'QAR'].map(cur => (
+              <button
+                key={cur}
+                onClick={() => { setIsLoading(true); setDisplayCurrency(cur); }}
+                className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${displayCurrency === cur ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-70 hover:opacity-100'}`}
+              >
+                {cur}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">

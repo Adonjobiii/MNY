@@ -7,7 +7,7 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b'];
 export default function Analytics() {
   const [timeframe, setTimeframe] = useState('1M');
   const [transactions, setTransactions] = useState([]);
-  const [displayCurrency, setDisplayCurrency] = useState('INR');
+  const [displayCurrency, setDisplayCurrency] = useState('QAR');
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`)
@@ -25,16 +25,20 @@ export default function Analytics() {
   const processTimeData = (txs, tf) => {
     const grouped = {};
     txs.forEach(t => {
-      let key = t.date; // YYYY-MM-DD
+      let key = t.date || ''; // YYYY-MM-DD
       if (tf === '6M' || tf === '1Y') {
-        key = t.date.substring(0, 7); // YYYY-MM
+        key = key.substring(0, 7); // YYYY-MM
       }
       if (!grouped[key]) grouped[key] = { name: key, income: 0, expenses: 0 };
-      if (t.type === 'Income') grouped[key].income += t.amount;
-      if (t.type === 'Expense') grouped[key].expenses += t.amount;
+      if (t.type === 'Income' || t.type === 'Debt' || (t.type === 'Dues' && t.dueAction === 'settle')) {
+        grouped[key].income += (Number(t.amount) || 0);
+      }
+      if (t.type === 'Expense' || (t.type === 'Dues' && t.dueAction === 'add')) {
+        grouped[key].expenses += (Number(t.amount) || 0);
+      }
     });
 
-    const sorted = Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = Object.values(grouped).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
     if (tf === '1W') return sorted.slice(-7);
     if (tf === '1M') return sorted.slice(-30);
@@ -45,8 +49,9 @@ export default function Analytics() {
 
   const getCategoryData = (txs) => {
     const catMap = {};
-    txs.filter(t => t.type === 'Expense').forEach(t => {
-      catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+    txs.filter(t => t.type === 'Expense' || (t.type === 'Dues' && t.dueAction === 'add')).forEach(t => {
+      const cat = t.type === 'Dues' ? 'Dues' : (t.category || 'Uncategorized');
+      catMap[cat] = (catMap[cat] || 0) + (Number(t.amount) || 0);
     });
     return Object.keys(catMap).map(k => ({ name: k, value: catMap[k] })).sort((a,b) => b.value - a.value);
   };
