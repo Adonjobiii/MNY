@@ -26,7 +26,9 @@ export default function Dashboard() {
   };
 
   const { isRefreshing, pullProgress } = usePullToRefresh(handleRefresh);
-  const [selectedAccount, setSelectedAccount] = useState('all');
+  const [flowMonth, setFlowMonth] = useState(new Date().getMonth());
+  const [flowYear, setFlowYear] = useState(new Date().getFullYear());
+  const [flowWeek, setFlowWeek] = useState(1);
   const [transactions, setTransactions] = useState([]);
   const [displayCurrency, setDisplayCurrency] = useState('INR');
 
@@ -218,24 +220,33 @@ export default function Dashboard() {
     color: COLORS[index % COLORS.length]
   }));
 
-  const flowByDate = displayTransactions
-    .filter(t => isCurrentMonth(t.date))
-    .reduce((acc, t) => {
-    if (!acc[t.date]) acc[t.date] = { date: t.date, Income: 0, Expense: 0, Dues: 0, Debt: 0 };
+  const flowByDate = {};
+  const daysInFlowMonth = new Date(flowYear, flowMonth + 1, 0).getDate();
+  for (let i = 1; i <= daysInFlowMonth; i++) {
+    const k = `${flowYear}-${String(flowMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    flowByDate[k] = { date: k, Income: 0, Expense: 0, Dues: 0, Debt: 0 };
+  }
+
+  displayTransactions.forEach(t => {
+    let key = t.date || '';
+    if (key.substring(0, 7) !== `${flowYear}-${String(flowMonth + 1).padStart(2, '0')}`) return;
+    
+    if (!flowByDate[key]) flowByDate[key] = { date: key, Income: 0, Expense: 0, Dues: 0, Debt: 0 };
     if (selectedAccount === 'total_dues') {
-      if (t.type === 'Dues' && t.dueAction === 'settle') acc[t.date].Income += t.amount;
-      if (t.type === 'Dues' && t.dueAction === 'add') acc[t.date].Expense += t.amount;
+      if (t.type === 'Dues' && t.dueAction === 'settle') flowByDate[key].Income += t.amount;
+      if (t.type === 'Dues' && t.dueAction === 'add') flowByDate[key].Expense += t.amount;
     } else if (selectedAccount === 'total_debt') {
-      if (t.type === 'Debt') acc[t.date].Income += t.amount; // taking debt is an inflow
+      if (t.type === 'Debt') flowByDate[key].Income += t.amount;
     } else {
-      if (t.type === 'Income') acc[t.date].Income += t.amount;
-      if (t.type === 'Expense') acc[t.date].Expense += t.amount;
-      if (t.type === 'Dues' && t.dueAction === 'add') acc[t.date].Dues += t.amount;
-      if (t.type === 'Debt') acc[t.date].Debt += t.amount;
+      if (t.type === 'Income') flowByDate[key].Income += t.amount;
+      if (t.type === 'Expense') flowByDate[key].Expense += t.amount;
+      if (t.type === 'Dues' && t.dueAction === 'add') flowByDate[key].Dues += t.amount;
+      if (t.type === 'Debt') flowByDate[key].Debt += t.amount;
     }
-    return acc;
-  }, {});
-  const flowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+  });
+
+  const fullFlowData = Object.values(flowByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const flowData = fullFlowData.slice((flowWeek - 1) * 7, flowWeek * 7);
 
 
   return (
@@ -302,8 +313,8 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 custom-scrollbar-x w-full">
-          <div className="snap-center w-[85vw] md:w-auto shrink-0 pl-4 md:pl-0">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 custom-scrollbar-x w-full md:grid md:grid-cols-4 md:overflow-visible">
+          <div className="snap-center w-[85vw] md:w-auto flex-1 shrink-0 pl-4 md:pl-0">
             <SummaryCard 
               title={selectedAccount === 'total_dues' ? "Total Dues" : "Total Balance"} 
               amount={selectedAccount === 'total_dues' 
@@ -314,7 +325,7 @@ export default function Dashboard() {
               icon={<DollarSign />} 
             />
           </div>
-          <div className="snap-center w-[85vw] md:w-auto shrink-0">
+          <div className="snap-center w-[85vw] md:w-auto flex-1 shrink-0">
             <SummaryCard 
               title={selectedAccount === 'total_dues' ? "Settled Dues" : "Total Income"} 
               amount={selectedAccount === 'total_dues' 
@@ -325,7 +336,7 @@ export default function Dashboard() {
               icon={<TrendingUp />} 
             />
           </div>
-          <div className="snap-center w-[85vw] md:w-auto shrink-0">
+          <div className="snap-center w-[85vw] md:w-auto flex-1 shrink-0">
             <SummaryCard 
               title={selectedAccount === 'total_dues' ? "Balance Dues to be Settled" : "Total Expenses"} 
               amount={selectedAccount === 'total_dues'
@@ -336,7 +347,7 @@ export default function Dashboard() {
               icon={<TrendingDown />} 
             />
           </div>
-          <div className="snap-center w-[85vw] md:w-auto shrink-0">
+          <div className="snap-center w-[85vw] md:w-auto flex-1 shrink-0 pr-4 md:pr-0">
             <SummaryCard 
               title="Health Score" 
               amount={selectedAccount === 'total_dues' ? `${duesHealthScore}/100` : `${healthScore}/100`} 
@@ -352,8 +363,29 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2 glass-panel rounded-3xl p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Cash Flow (This Month)</h2>
-              <div className="text-sm font-bold opacity-50">{activeDisplayCurrency === 'INR' ? '₹ Rupees' : 'QAR Riyal'}</div>
+              <h2 className="text-xl font-semibold">Cash Flow</h2>
+              <div className="flex gap-2 items-center">
+                <select 
+                  value={flowMonth} 
+                  onChange={(e) => { setFlowMonth(Number(e.target.value)); setFlowWeek(1); }}
+                  className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs font-semibold outline-none focus:ring-1 focus:ring-blue-500 text-[var(--foreground)]"
+                >
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const d = new Date(flowYear, i, 1);
+                    return <option key={i} value={i}>{d.toLocaleString('default', { month: 'short' })}</option>;
+                  })}
+                </select>
+                <select 
+                  value={flowWeek} 
+                  onChange={(e) => setFlowWeek(Number(e.target.value))}
+                  className="bg-[var(--background)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs font-semibold outline-none focus:ring-1 focus:ring-blue-500 text-[var(--foreground)]"
+                >
+                  {Array.from({ length: Math.max(1, Math.ceil((fullFlowData?.length || 0) / 7)) }).map((_, i) => (
+                    <option key={i+1} value={i+1}>W{i+1}</option>
+                  ))}
+                </select>
+                <div className="text-sm font-bold opacity-50 ml-2">{activeDisplayCurrency === 'INR' ? '₹ Rupees' : 'QAR Riyal'}</div>
+              </div>
             </div>
             {flowData.length > 0 ? (
               <div className="h-80 w-full">
