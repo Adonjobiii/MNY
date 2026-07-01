@@ -146,16 +146,30 @@ export default function Dashboard() {
     return acc;
   }, 0);
 
+  const totalDuesAddedINR = filteredTransactions.filter(t => t.type === 'Dues' && t.dueAction === 'add' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
+  const totalDuesSettledINR = filteredTransactions.filter(t => t.type === 'Dues' && t.dueAction === 'settle' && !isQAR(t)).reduce((s, t) => s + t.amount, 0);
+  
+  const totalDuesAddedQAR = filteredTransactions.filter(t => t.type === 'Dues' && t.dueAction === 'add' && isQAR(t)).reduce((s, t) => s + t.amount, 0);
+  const totalDuesSettledQAR = filteredTransactions.filter(t => t.type === 'Dues' && t.dueAction === 'settle' && isQAR(t)).reduce((s, t) => s + t.amount, 0);
+
   const activeDisplayCurrency = ['icici', 'sib', 'cash_inr'].includes(selectedAccount) ? 'INR' 
     : ['cash_qar', 'qatar_bank'].includes(selectedAccount) ? 'QAR' 
     : displayCurrency;
 
   const currentTotalIncome = activeDisplayCurrency === 'QAR' ? totalIncomeQAR : totalIncomeINR;
   const currentTotalExpenses = activeDisplayCurrency === 'QAR' ? totalExpensesQAR : totalExpensesINR;
+  
+  const currentTotalDuesAdded = activeDisplayCurrency === 'QAR' ? totalDuesAddedQAR : totalDuesAddedINR;
+  const currentTotalDuesSettled = activeDisplayCurrency === 'QAR' ? totalDuesSettledQAR : totalDuesSettledINR;
+  
+  const duesBalanceINR = totalDuesAddedINR - totalDuesSettledINR;
+  const duesBalanceQAR = totalDuesAddedQAR - totalDuesSettledQAR;
 
   const healthScore = currentTotalIncome === 0 && currentTotalExpenses === 0 ? 0 : 
                       currentTotalIncome === 0 ? 0 : 
                       Math.max(0, Math.round(((currentTotalIncome - currentTotalExpenses) / currentTotalIncome) * 100));
+
+  const duesHealthScore = currentTotalDuesAdded === 0 ? 100 : Math.round((currentTotalDuesSettled / currentTotalDuesAdded) * 100);
 
   const showINR = ['all', 'icici', 'sib', 'cash_inr', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
   const showQAR = ['all', 'cash_qar', 'qatar_bank', 'total_dues', 'total_debt', 'total_cash'].includes(selectedAccount);
@@ -288,21 +302,24 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Swipeable Summary Cards */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-6 custom-scrollbar mb-8">
-          <div className="snap-center w-[85vw] md:w-auto shrink-0">
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 custom-scrollbar-x w-full">
+          <div className="snap-center w-[85vw] md:w-auto shrink-0 pl-4 md:pl-0">
             <SummaryCard 
-              title="Total Balance" 
-              amount={renderCurrencyAmount(totalBalanceINR, totalBalanceQAR)} 
-              trend={totalBalanceINR >= 0 ? "Healthy" : "Low"} 
-              isPositive={totalBalanceINR >= 0} 
+              title={selectedAccount === 'total_dues' ? "Total Dues" : "Total Balance"} 
+              amount={selectedAccount === 'total_dues' 
+                ? renderCurrencyAmount(totalDuesAddedINR, totalDuesAddedQAR) 
+                : renderCurrencyAmount(totalBalanceINR, totalBalanceQAR)} 
+              trend="Healthy" 
+              isPositive={true} 
               icon={<DollarSign />} 
             />
           </div>
           <div className="snap-center w-[85vw] md:w-auto shrink-0">
             <SummaryCard 
-              title="Total Income" 
-              amount={renderCurrencyAmount(totalIncomeINR, totalIncomeQAR)} 
+              title={selectedAccount === 'total_dues' ? "Settled Dues" : "Total Income"} 
+              amount={selectedAccount === 'total_dues' 
+                ? renderCurrencyAmount(totalDuesSettledINR, totalDuesSettledQAR)
+                : renderCurrencyAmount(totalIncomeINR, totalIncomeQAR)} 
               trend="Recent" 
               isPositive={true} 
               icon={<TrendingUp />} 
@@ -310,15 +327,23 @@ export default function Dashboard() {
           </div>
           <div className="snap-center w-[85vw] md:w-auto shrink-0">
             <SummaryCard 
-              title="Total Expenses" 
-              amount={renderCurrencyAmount(totalExpensesINR, totalExpensesQAR)} 
+              title={selectedAccount === 'total_dues' ? "Balance Dues to be Settled" : "Total Expenses"} 
+              amount={selectedAccount === 'total_dues'
+                ? renderCurrencyAmount(duesBalanceINR, duesBalanceQAR) 
+                : renderCurrencyAmount(totalExpensesINR, totalExpensesQAR)}  
               trend="Recent" 
               isPositive={false} 
               icon={<TrendingDown />} 
             />
           </div>
           <div className="snap-center w-[85vw] md:w-auto shrink-0">
-            <SummaryCard title="Health Score" amount={`${healthScore}/100`} trend={healthScore > 50 ? "Good" : "Needs Work"} isPositive={healthScore > 50} icon={<DollarSign />} />
+            <SummaryCard 
+              title="Health Score" 
+              amount={selectedAccount === 'total_dues' ? `${duesHealthScore}/100` : `${healthScore}/100`} 
+              trend={selectedAccount === 'total_dues' ? (duesHealthScore > 50 ? "Good" : "Needs Work") : (healthScore > 50 ? "Good" : "Needs Work")} 
+              isPositive={selectedAccount === 'total_dues' ? duesHealthScore > 50 : healthScore > 50} 
+              icon={<DollarSign />} 
+            />
           </div>
         </div>
 
