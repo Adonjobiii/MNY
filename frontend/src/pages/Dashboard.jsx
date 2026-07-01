@@ -26,6 +26,7 @@ export default function Dashboard() {
   };
 
   const { isRefreshing, pullProgress } = usePullToRefresh(handleRefresh);
+  const [selectedAccount, setSelectedAccount] = useState('all');
   const [flowMonth, setFlowMonth] = useState(new Date().getMonth());
   const [flowYear, setFlowYear] = useState(new Date().getFullYear());
   const [flowWeek, setFlowWeek] = useState(1);
