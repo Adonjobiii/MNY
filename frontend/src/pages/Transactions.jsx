@@ -259,9 +259,9 @@ export default function Transactions() {
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
-          type: 'Income',
-          category: 'Dues Received',
-          description: `Received Dues: ${finalDescription}`,
+          type: 'Expense',
+          category: 'Dues Given',
+          description: `Given Dues: ${finalDescription}`,
           mode: selectedMode,
           amount: parseFloat(amount),
           status: 'Completed'
@@ -280,9 +280,9 @@ export default function Transactions() {
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
-          type: 'Expense',
-          category: 'Dues Given',
-          description: `Given Dues: ${finalDescription}`,
+          type: 'Income',
+          category: 'Dues Received',
+          description: `Received Dues: ${finalDescription}`,
           mode: selectedMode,
           amount: parseFloat(amount),
           status: 'Completed'

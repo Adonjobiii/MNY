@@ -80,7 +80,7 @@ export default function Dashboard() {
     if (selectedAccount === 'all') return true;
     if (selectedAccount === 'total_dues') return tx.type === 'Dues';
     if (selectedAccount === 'total_debt') return tx.type === 'Debt';
-    if (selectedAccount === 'total_cash') return tx.mode === 'Cash (Rupees)' || tx.mode === 'Cash (Qatar Riyal)';
+    if (selectedAccount === 'total_cash') return tx.mode === 'Cash (Rupees)' || tx.mode === 'Cash (Qatar Riyal)' || tx.type === 'Debt';
     const accDef = accounts.find(a => a.id === selectedAccount);
     return accDef ? (tx.mode === accDef.name || tx.mode === `UPI (${accDef.name})`) : false;
   });
