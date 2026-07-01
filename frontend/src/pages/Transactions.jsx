@@ -251,9 +251,9 @@ export default function Transactions() {
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
-          type: 'Expense',
-          category: 'Dues Given',
-          description: `Given Dues: ${finalDescription}`,
+          type: 'Income',
+          category: 'Dues Received',
+          description: `Received Dues: ${finalDescription}`,
           mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
           amount: parseFloat(amount),
           status: 'Completed'
@@ -267,9 +267,9 @@ export default function Transactions() {
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
-          type: 'Income',
-          category: 'Dues Received',
-          description: `Received Dues: ${finalDescription}`,
+          type: 'Expense',
+          category: 'Dues Given',
+          description: `Given Dues: ${finalDescription}`,
           mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
           amount: parseFloat(amount),
           status: 'Completed'
@@ -1067,12 +1067,12 @@ export default function Transactions() {
                     <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-bold block">Also Deduct from Cash Account?</label>
-                          <p className="text-xs opacity-60">Automatically create an expense transaction in your Cash account</p>
+                          <label className="text-sm font-bold block">Add to Total Cash in Hand?</label>
+                          <p className="text-xs opacity-60">Automatically create an income transaction in your Cash account</p>
                         </div>
                         <button 
                           onClick={() => setAddToCash(!addToCash)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-red-500' : 'bg-black/20 dark:bg-white/20'}`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-green-500' : 'bg-black/20 dark:bg-white/20'}`}
                         >
                           <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
@@ -1084,12 +1084,12 @@ export default function Transactions() {
                     <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-bold block">Also Add to Cash Account?</label>
-                          <p className="text-xs opacity-60">Automatically create an income transaction in your Cash account</p>
+                          <label className="text-sm font-bold block">Deduct from Total Cash in Hand?</label>
+                          <p className="text-xs opacity-60">Automatically create an expense transaction in your Cash account</p>
                         </div>
                         <button 
                           onClick={() => setAddToCash(!addToCash)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-green-500' : 'bg-black/20 dark:bg-white/20'}`}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-red-500' : 'bg-black/20 dark:bg-white/20'}`}
                         >
                           <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>

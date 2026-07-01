@@ -30,10 +30,10 @@ export default function Analytics() {
         key = key.substring(0, 7); // YYYY-MM
       }
       if (!grouped[key]) grouped[key] = { name: key, income: 0, expenses: 0 };
-      if (t.type === 'Income' || t.type === 'Debt' || (t.type === 'Dues' && t.dueAction === 'settle')) {
+      if (t.type === 'Income') {
         grouped[key].income += (Number(t.amount) || 0);
       }
-      if (t.type === 'Expense' || (t.type === 'Dues' && t.dueAction === 'add')) {
+      if (t.type === 'Expense') {
         grouped[key].expenses += (Number(t.amount) || 0);
       }
     });
@@ -49,8 +49,8 @@ export default function Analytics() {
 
   const getCategoryData = (txs) => {
     const catMap = {};
-    txs.filter(t => t.type === 'Expense' || (t.type === 'Dues' && t.dueAction === 'add')).forEach(t => {
-      const cat = t.type === 'Dues' ? 'Dues' : (t.category || 'Uncategorized');
+    txs.filter(t => t.type === 'Expense').forEach(t => {
+      const cat = t.category || 'Uncategorized';
       catMap[cat] = (catMap[cat] || 0) + (Number(t.amount) || 0);
     });
     return Object.keys(catMap).map(k => ({ name: k, value: catMap[k] })).sort((a,b) => b.value - a.value);
