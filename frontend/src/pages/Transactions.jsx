@@ -41,6 +41,9 @@ export default function Transactions() {
   const [planIncome, setPlanIncome] = useState(false);
   const [upiAccount, setUpiAccount] = useState('icici');
   
+  const [dueDestType, setDueDestType] = useState('cash'); // 'cash' | 'bank'
+  const [dueDestBank, setDueDestBank] = useState('icici');
+  
   const [customCategories, setCustomCategories] = useState([]);
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -248,13 +251,18 @@ export default function Transactions() {
         }
       }
       if (addToCash && txType === 'Dues' && dueAction === 'add') {
+        let selectedMode = dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)';
+        if (dueDestType === 'bank' && dueDestBank) {
+          const bankAcc = accounts.find(a => a.id === dueDestBank);
+          if (bankAcc) selectedMode = bankAcc.name;
+        }
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
           type: 'Income',
           category: 'Dues Received',
           description: `Received Dues: ${finalDescription}`,
-          mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
+          mode: selectedMode,
           amount: parseFloat(amount),
           status: 'Completed'
         };
@@ -264,13 +272,18 @@ export default function Transactions() {
           body: JSON.stringify(cashTx)
         });
       } else if (addToCash && txType === 'Dues' && dueAction === 'settle') {
+        let selectedMode = dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)';
+        if (dueDestType === 'bank' && dueDestBank) {
+          const bankAcc = accounts.find(a => a.id === dueDestBank);
+          if (bankAcc) selectedMode = bankAcc.name;
+        }
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
           type: 'Expense',
           category: 'Dues Given',
           description: `Given Dues: ${finalDescription}`,
-          mode: dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)',
+          mode: selectedMode,
           amount: parseFloat(amount),
           status: 'Completed'
         };
@@ -1049,53 +1062,73 @@ export default function Transactions() {
                   </div>
 
                   <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <label className="text-sm font-bold block">Include in Total Balance</label>
                         <p className="text-xs opacity-60">Should this due count towards your available balance?</p>
                       </div>
                       <button 
                         onClick={() => setIncludeInBalance(!includeInBalance)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeInBalance ? 'bg-orange-500' : 'bg-black/20 dark:bg-white/20'}`}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${includeInBalance ? 'bg-orange-500' : 'bg-black/20 dark:bg-white/20'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${includeInBalance ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <label className="text-sm font-bold block">
+                          {dueAction === 'add' ? 'Auto-Add Income Transaction?' : 'Auto-Add Expense Transaction?'}
+                        </label>
+                        <p className="text-xs opacity-60">
+                          {dueAction === 'add' ? 'Automatically add this amount to an account' : 'Automatically deduct this amount from an account'}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => setAddToCash(!addToCash)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${addToCash ? (dueAction === 'add' ? 'bg-green-500' : 'bg-red-500') : 'bg-black/20 dark:bg-white/20'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+
+                    {addToCash && (
+                      <div className="pl-4 border-l-2 border-[var(--border)] mt-2 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2 opacity-80">Destination Type</label>
+                          <div className="flex gap-4">
+                            <button 
+                              onClick={() => setDueDestType('cash')}
+                              className={`flex-1 py-2 rounded-xl border font-semibold transition-colors ${dueDestType === 'cash' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}`}
+                            >
+                              Cash
+                            </button>
+                            <button 
+                              onClick={() => setDueDestType('bank')}
+                              className={`flex-1 py-2 rounded-xl border font-semibold transition-colors ${dueDestType === 'bank' ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}`}
+                            >
+                              Bank Account
+                            </button>
+                          </div>
+                        </div>
+
+                        {dueDestType === 'bank' && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2 opacity-80">Select Bank</label>
+                            <select 
+                              value={dueDestBank}
+                              onChange={(e) => setDueDestBank(e.target.value)}
+                              className="w-full bg-black/5 dark:bg-white/5 border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-[var(--foreground)]"
+                            >
+                              {accounts.filter(a => ['icici', 'sib', 'qatar_bank'].includes(a.id)).map(bank => (
+                                <option key={bank.id} value={bank.id}>{bank.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  {dueAction === 'add' && (
-                    <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-bold block">Add to Total Cash in Hand?</label>
-                          <p className="text-xs opacity-60">Automatically create an income transaction in your Cash account</p>
-                        </div>
-                        <button 
-                          onClick={() => setAddToCash(!addToCash)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-green-500' : 'bg-black/20 dark:bg-white/20'}`}
-                        >
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {dueAction === 'settle' && (
-                    <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-[var(--border)] mt-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-bold block">Deduct from Total Cash in Hand?</label>
-                          <p className="text-xs opacity-60">Automatically create an expense transaction in your Cash account</p>
-                        </div>
-                        <button 
-                          onClick={() => setAddToCash(!addToCash)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${addToCash ? 'bg-red-500' : 'bg-black/20 dark:bg-white/20'}`}
-                        >
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addToCash ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
