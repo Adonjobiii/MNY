@@ -3,7 +3,7 @@ import { Target, TrendingUp, PieChart, Briefcase, Activity, CheckCircle2, AlertT
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie } from 'recharts';
 
 const ReportCover = ({ data }) => (
-  <div className="page-break-after min-h-[297mm] bg-white text-slate-900 flex flex-col items-center justify-center p-20 relative overflow-hidden">
+  <div className="page-break-after min-h-full bg-white text-slate-900 flex flex-col items-center justify-center p-20 relative overflow-hidden">
     <div className="absolute top-0 left-0 w-full h-4 bg-blue-600"></div>
     <div className="absolute top-4 left-0 w-full h-2 bg-purple-600"></div>
     
@@ -22,15 +22,15 @@ const ReportCover = ({ data }) => (
     <div className="mt-20 w-full max-w-3xl bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-200 grid grid-cols-3 gap-4 md:gap-8 text-center shadow-lg">
       <div className="overflow-hidden flex flex-col justify-center min-w-0">
         <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Health Score</p>
-        <p className="text-xl md:text-3xl font-black text-blue-600 truncate">{data.healthScore}/100</p>
+        <p className="text-xl md:text-2xl font-black text-blue-600">{data.healthScore}/100</p>
       </div>
       <div className="border-l border-r border-slate-200 overflow-hidden px-2 md:px-4 flex flex-col justify-center min-w-0">
         <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Net Worth</p>
-        <p className="text-xl md:text-3xl font-black text-slate-800 truncate" title={`₹${data.netWorthINR.toLocaleString()} | QAR ${data.netWorthQAR.toLocaleString()}`}>₹ {data.netWorthINR.toLocaleString()} | QAR {data.netWorthQAR.toLocaleString()}</p>
+        <p className="text-lg md:text-2xl font-black text-slate-800" title={`₹${data.netWorthINR.toLocaleString()} | QAR ${data.netWorthQAR.toLocaleString()}`}>₹ {data.netWorthINR.toLocaleString()} | QAR {data.netWorthQAR.toLocaleString()}</p>
       </div>
       <div className="overflow-hidden flex flex-col justify-center min-w-0">
         <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Saved</p>
-        <p className="text-xl md:text-3xl font-black text-emerald-600 truncate" title={`₹${data.totalSavingsINR.toLocaleString()} | QAR ${data.totalSavingsQAR.toLocaleString()}`}>₹ {data.totalSavingsINR.toLocaleString()} | QAR {data.totalSavingsQAR.toLocaleString()}</p>
+        <p className="text-lg md:text-2xl font-black text-emerald-600" title={`₹${data.totalSavingsINR.toLocaleString()} | QAR ${data.totalSavingsQAR.toLocaleString()}`}>₹ {data.totalSavingsINR.toLocaleString()} | QAR {data.totalSavingsQAR.toLocaleString()}</p>
       </div>
     </div>
 
@@ -60,7 +60,7 @@ const ExecutiveSummary = ({ data }) => {
   };
 
   return (
-  <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
+  <div className="page-break-after min-h-full bg-white text-slate-900 p-16">
     <SectionHeader title="Executive Summary" icon={FileText} />
     
     <div className="grid grid-cols-2 gap-8 mb-12">
@@ -168,7 +168,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
   const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#06b6d4'];
 
   return (
-    <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
+    <div className="page-break-after min-h-full bg-white text-slate-900 p-16">
       <SectionHeader title="Income, Expense & Transfers" icon={PieChart} />
       
       <div className="mb-12 grid grid-cols-2 gap-8">
@@ -292,7 +292,7 @@ const IncomeExpenseAnalysis = ({ data }) => {
 };
 
 const BudgetGoalsAnalysis = ({ data }) => (
-  <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
+  <div className="page-break-after min-h-full bg-white text-slate-900 p-16">
     <SectionHeader title="Budget & Goals Performance" icon={Target} />
     
     <div className="mb-12">
@@ -342,7 +342,7 @@ const BudgetGoalsAnalysis = ({ data }) => (
 );
 
 const InvestmentAndAI = ({ data }) => (
-  <div className="min-h-[297mm] bg-white text-slate-900 p-16">
+  <div className="min-h-full bg-white text-slate-900 p-16">
     <SectionHeader title="Investments & Insights" icon={Sparkles} />
     
     <div className="mb-12 grid grid-cols-2 gap-8">
@@ -411,7 +411,7 @@ const DuesDetails = ({ data }) => {
   if (!data.duesData || data.duesData.length === 0) return null;
 
   return (
-    <div className="page-break-after min-h-[297mm] bg-white text-slate-900 p-16">
+    <div className="page-break-after min-h-full bg-white text-slate-900 p-16">
       <SectionHeader title="Active Dues & Receivables" icon={AlertTriangle} />
       
       <div className="mb-12">

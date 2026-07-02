@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { FileText, Printer, DownloadCloud, ChevronLeft, ChevronRight } from 'lucide-react';
 import MonthlyReportTemplate from '../components/reports/MonthlyReportTemplate';
+import * as XLSX from 'xlsx';
 
 export default function Reports() {
   const componentRef = useRef();
@@ -184,7 +185,8 @@ export default function Reports() {
         portfolioValue: investments.reduce((sum, i) => sum + i.amount, 0),
         roi: 0,
         accounts: [],
-        duesData: transactions.filter(t => t.type === 'Dues'),
+        duesData: currentMonthTxs.filter(t => t.type === 'Dues'),
+        rawTransactions: currentMonthTxs,
         insights: [
           `You spent ₹${cmINR.totalExpenses.toLocaleString()} and QAR ${cmQAR.totalExpenses.toLocaleString()} this month.`,
           (cmINR.totalDebt > 0 || cmQAR.totalDebt > 0) ? `You have ₹${cmINR.totalDebt.toLocaleString()} | QAR ${cmQAR.totalDebt.toLocaleString()} in new debts.` : 'No new debts recorded this month.'
@@ -208,16 +210,48 @@ export default function Reports() {
     documentTitle: `TrackMyMNY_Report_${data?.monthYear?.replace(' ', '_')}`
   });
 
-  const exportCSV = () => {
-    if (!data) return;
-    const csvContent = `data:text/csv;charset=utf-8,Category,Amount\nIncome,${data.totalIncome}\nExpenses,${data.totalExpenses}\nSavings,${data.totalSavings}\nDebt,${data.totalDebt}`;
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `financial_summary_${data.monthYear.replace(' ', '_')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportExcel = () => {
+    if (!data || !data.rawTransactions) return;
+
+    const txs = data.rawTransactions;
+    
+    const formatTx = (t) => ({ 
+      Date: new Date(t.date).toLocaleDateString(), 
+      Description: t.description, 
+      Category: t.category || '-', 
+      Amount: Number(t.amount), 
+      Currency: t.dueCurrency || (t.mode?.includes('Qatar') ? 'QAR' : 'INR'),
+      Mode: t.mode || '-'
+    });
+
+    const incomeTxs = txs.filter(t => t.type === 'Income').map(formatTx);
+    const expenseTxs = txs.filter(t => t.type === 'Expense').map(formatTx);
+    const debtTxs = txs.filter(t => t.type === 'Debt').map(formatTx);
+    
+    const duesTxs = txs.filter(t => t.type === 'Dues').map(t => ({ 
+      Date: new Date(t.date).toLocaleDateString(), 
+      Description: t.description, 
+      Action: t.dueAction?.toUpperCase(), 
+      ToFrom: t.toWhom || '-', 
+      Amount: Number(t.amount), 
+      Currency: t.dueCurrency || 'INR' 
+    }));
+
+    const wb = XLSX.utils.book_new();
+    
+    const wsIncome = XLSX.utils.json_to_sheet(incomeTxs.length ? incomeTxs : [{ Note: 'No Income this month' }]);
+    XLSX.utils.book_append_sheet(wb, wsIncome, "Income");
+
+    const wsExpense = XLSX.utils.json_to_sheet(expenseTxs.length ? expenseTxs : [{ Note: 'No Expenses this month' }]);
+    XLSX.utils.book_append_sheet(wb, wsExpense, "Expenses");
+
+    const wsDebt = XLSX.utils.json_to_sheet(debtTxs.length ? debtTxs : [{ Note: 'No Debt this month' }]);
+    XLSX.utils.book_append_sheet(wb, wsDebt, "Debt");
+
+    const wsDues = XLSX.utils.json_to_sheet(duesTxs.length ? duesTxs : [{ Note: 'No Dues this month' }]);
+    XLSX.utils.book_append_sheet(wb, wsDues, "Dues");
+
+    XLSX.writeFile(wb, `Monthly_Report_${data.monthYear.replace(' ', '_')}.xlsx`);
   };
 
   return (
@@ -247,12 +281,12 @@ export default function Reports() {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button 
-              onClick={exportCSV}
+              onClick={exportExcel}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[var(--card)] hover:bg-black/10 dark:hover:bg-white/10 px-6 py-3 rounded-xl transition-all border border-[var(--border)] font-bold text-sm"
               disabled={isLoading}
             >
               <DownloadCloud size={18} />
-              Export CSV
+              Export Excel
             </button>
             <button 
               onClick={handlePrint}
