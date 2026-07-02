@@ -441,6 +441,36 @@ const DuesDetails = ({ data }) => {
     </div>
   );
 };
+const TransactionTable = ({ title, icon: Icon, transactions }) => {
+  if (!transactions || transactions.length === 0) return null;
+
+  return (
+    <div className="page-break-after min-h-full bg-white text-slate-900 p-16">
+      <SectionHeader title={title} icon={Icon} />
+      
+      <div className="mb-12">
+        <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
+          <div className="grid grid-cols-4 font-bold text-slate-500 uppercase tracking-wider text-sm border-b border-slate-200 pb-3">
+            <div>Date</div>
+            <div>Description</div>
+            <div>Category</div>
+            <div className="text-right">Amount</div>
+          </div>
+          {transactions.map(tx => (
+            <div key={tx.id} className="grid grid-cols-4 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0 pt-2">
+              <div className="text-slate-600 font-medium">{new Date(tx.date).toLocaleDateString()}</div>
+              <div className="font-medium text-slate-800">{tx.description || '-'}</div>
+              <div className="text-slate-600">{tx.category || '-'}</div>
+              <div className="text-right font-bold text-slate-800">
+                {tx.dueCurrency === 'QAR' || (tx.mode && tx.mode.includes('Qatar')) ? 'QAR ' : '₹'}{Number(tx.amount).toLocaleString()}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MonthlyReportTemplate = ({ data }) => {
   return (
@@ -460,6 +490,9 @@ const MonthlyReportTemplate = ({ data }) => {
       <ReportCover data={data} />
       <ExecutiveSummary data={data} />
       <IncomeExpenseAnalysis data={data} />
+      {data.rawTransactions && <TransactionTable title="Income Breakdown" icon={FileText} transactions={data.rawTransactions.filter(t => t.type === 'Income')} />}
+      {data.rawTransactions && <TransactionTable title="Expense Breakdown" icon={FileText} transactions={data.rawTransactions.filter(t => t.type === 'Expense')} />}
+      {data.rawTransactions && <TransactionTable title="Debt Overview" icon={FileText} transactions={data.rawTransactions.filter(t => t.type === 'Debt')} />}
       <DuesDetails data={data} />
       <BudgetGoalsAnalysis data={data} />
       <InvestmentAndAI data={data} />
