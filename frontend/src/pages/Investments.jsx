@@ -66,13 +66,12 @@ export default function Investments() {
       })
     })
       .then(res => res.json())
-      .then((newInv) => {
+      .then(async (newInv) => {
         setInvestments(prev => [newInv, ...prev]);
         
         if (formData.sourceAccount !== 'none') {
           const selectedAcc = accounts.find(a => a.id === formData.sourceAccount);
           const accName = selectedAcc ? selectedAcc.name : 'Cash';
-          // Replace "Cash in Hand (Rupees)" with "Cash (Rupees)" to match transaction logic
           const modeName = accName.replace('Cash in Hand', 'Cash');
           
           const cashTx = {
@@ -85,11 +84,16 @@ export default function Investments() {
             amount: Number(formData.amount),
             status: 'Completed'
           };
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cashTx)
-          });
+          
+          try {
+            await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(cashTx)
+            });
+          } catch (err) {
+            console.error('Failed to post auto transaction:', err);
+          }
         }
 
         setShowAddForm(false);
