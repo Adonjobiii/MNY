@@ -71,9 +71,34 @@ export default function Analytics() {
     return sorted;
   };
 
-  const getCategoryData = (txs) => {
+  const getCategoryData = (txs, tf) => {
     const catMap = {};
+    
+    let validDates = new Set();
+    let targetMonths = new Set();
+    
+    if (tf === '1W') {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        validDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+    } else if (tf === '6M' || tf === '1Y') {
+      const months = Array.from(new Set(txs.map(t => (t.date || '').substring(0, 7)))).sort();
+      targetMonths = new Set(months.slice(tf === '6M' ? -6 : -12));
+    }
+
     txs.filter(t => t.type === 'Expense').forEach(t => {
+      let key = t.date || '';
+      
+      if (tf === '1M') {
+        if (key.substring(0, 7) !== `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`) return;
+      } else if (tf === '1W') {
+        if (!validDates.has(key)) return;
+      } else if (tf === '6M' || tf === '1Y') {
+        if (!targetMonths.has(key.substring(0, 7))) return;
+      }
+
       const cat = t.category || 'Uncategorized';
       catMap[cat] = (catMap[cat] || 0) + (Number(t.amount) || 0);
     });
@@ -81,7 +106,7 @@ export default function Analytics() {
   };
 
   const data = processTimeData(displayTransactions, timeframe);
-  const categoryData = getCategoryData(displayTransactions);
+  const categoryData = getCategoryData(displayTransactions, timeframe);
   const currencySymbol = displayCurrency === 'INR' ? '₹' : 'QAR ';
 
   const formatYAxis = (val) => {

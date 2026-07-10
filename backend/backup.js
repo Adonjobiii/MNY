@@ -1,59 +1,33 @@
+const { Pool } = require('pg');
 const fs = require('fs');
-const path = require('path');
 
-async function performBackup(db) {
+const pool = new Pool({
+  connectionString: "postgresql://neondb_owner:npg_kYZgXs7pu8Pv@ep-lucky-smoke-apznr9tl-pooler.c-7.us-east-1.aws.neon.tech/neondb?uselibpqcompat=true&sslmode=require",
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+async function backup() {
   try {
-    const today = new Date();
-    // Use local timezone to get the correct date string
-    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-    const dateStr = today.toISOString().split('T')[0];
-    
-    const backupDir = path.join(__dirname, 'backups');
-    const backupFile = path.join(backupDir, `backup_${dateStr}.json`);
-
-    // Ensure backups directory exists
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-
-    // If backup already exists for today, we will overwrite it to keep it fully up to date!
-    if (fs.existsSync(backupFile)) {
-      console.log(`[BACKUP] Updating today's backup file: ${dateStr}...`);
-    } else {
-      console.log(`[BACKUP] Starting new database backup for ${dateStr}...`);
-    }
-
-    console.log(`[BACKUP] Starting database backup for ${dateStr}...`);
-
+    const tables = ['users', 'accounts', 'categories', 'transactions', 'budgets', 'goals', 'investments', 'split_transactions', 'dues', 'debt'];
     const backupData = {};
-
-    // Fetch data from all tables
-    backupData.transactions = await db.all('SELECT * FROM transactions');
-    
-    try {
-        backupData.investments = await db.all('SELECT * FROM investments');
-    } catch (e) {
-        console.warn('[BACKUP] Warning: Could not fetch investments', e.message);
+    for (const table of tables) {
+      try {
+        const res = await pool.query(`SELECT * FROM ${table}`);
+        backupData[table] = res.rows;
+        console.log(`Exported ${res.rows.length} rows from ${table}`);
+      } catch (e) {
+        console.log(`Skipped ${table}: ${e.message}`);
+      }
     }
-    
-    try {
-        backupData.budgets = await db.all('SELECT * FROM budgets');
-    } catch (e) {
-        console.warn('[BACKUP] Warning: Could not fetch budgets', e.message);
-    }
-    
-    try {
-        backupData.goals = await db.all('SELECT * FROM goals');
-    } catch (e) {
-        console.warn('[BACKUP] Warning: Could not fetch goals', e.message);
-    }
-
-    fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2), 'utf8');
-    
-    console.log(`[BACKUP] Successfully created backup: ${backupFile}`);
-  } catch (error) {
-    console.error(`[BACKUP] Failed to create backup:`, error);
+    fs.writeFileSync('../database_backup.json', JSON.stringify(backupData, null, 2));
+    console.log('Database backup created successfully at database_backup.json');
+  } catch (err) {
+    console.error('Backup error', err);
+  } finally {
+    pool.end();
   }
 }
 
-module.exports = { performBackup };
+backup();
