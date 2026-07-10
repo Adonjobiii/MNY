@@ -8,8 +8,18 @@ export default function Investments() {
     amount: '',
     completion_date: '',
     type: 'SIP',
-    currency: 'INR'
+    currency: 'INR',
+    sourceAccount: 'none'
   });
+
+  const accounts = [
+    { id: 'none', name: 'Do not deduct (Manual)' },
+    { id: 'cash_inr', name: 'Cash in Hand (Rupees)' },
+    { id: 'cash_qar', name: 'Cash in Hand (Qatar Riyal)' },
+    { id: 'icici', name: 'ICICI Bank' },
+    { id: 'sib', name: 'South Indian Bank' },
+    { id: 'qatar_bank', name: 'Qatar Bank' }
+  ];
 
   const fetchInvestments = () => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/investments`)
@@ -58,8 +68,32 @@ export default function Investments() {
       .then(res => res.json())
       .then((newInv) => {
         setInvestments(prev => [newInv, ...prev]);
+        
+        if (formData.sourceAccount !== 'none') {
+          const selectedAcc = accounts.find(a => a.id === formData.sourceAccount);
+          const accName = selectedAcc ? selectedAcc.name : 'Cash';
+          // Replace "Cash in Hand (Rupees)" with "Cash (Rupees)" to match transaction logic
+          const modeName = accName.replace('Cash in Hand', 'Cash');
+          
+          const cashTx = {
+            id: Date.now() + 1,
+            date: new Date().toISOString().split('T')[0],
+            type: 'Expense',
+            category: 'Investments',
+            description: `Investment: ${formData.type}`,
+            mode: modeName,
+            amount: Number(formData.amount),
+            status: 'Completed'
+          };
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cashTx)
+          });
+        }
+
         setShowAddForm(false);
-        setFormData({ amount: '', completion_date: '', type: 'SIP', currency: 'INR' });
+        setFormData({ amount: '', completion_date: '', type: 'SIP', currency: 'INR', sourceAccount: 'none' });
       })
       .catch(err => console.error('Failed to add investment:', err));
   };
@@ -142,6 +176,20 @@ export default function Investments() {
                 <option value="STOCK">STOCK</option>
                 <option value="GOLD">GOLD</option>
                 <option value="CASH">CASH</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 opacity-70">Deduct From Account</label>
+              <select
+                name="sourceAccount"
+                value={formData.sourceAccount}
+                onChange={handleChange}
+                className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                ))}
               </select>
             </div>
 

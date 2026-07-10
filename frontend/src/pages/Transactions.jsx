@@ -191,14 +191,14 @@ export default function Transactions() {
       id: editId || getNextId(),
       date: txDate,
       type: txType,
-      dueAction: txType === 'Dues' ? dueAction : null,
-      dueCurrency: txType === 'Dues' ? dueCurrency : null,
-      includeInBalance: txType === 'Dues' ? includeInBalance : false,
+      dueAction: (txType === 'Dues' || txType === 'Debt') ? dueAction : null,
+      dueCurrency: (txType === 'Dues' || txType === 'Debt') ? dueCurrency : null,
+      includeInBalance: (txType === 'Dues' || txType === 'Debt') ? includeInBalance : false,
       category: txType === 'Debt' ? 'Debt' : finalCategory,
       description: finalDescription,
       toWhom: txType === 'Debt' ? toWhom : null,
-      mode: (txType === 'Dues' && dueAction === 'add') 
-        ? `Dues (${dueCurrency === 'INR' ? 'Rupees' : 'Qatar Riyal'})` 
+      mode: ((txType === 'Dues' || txType === 'Debt') && dueAction === 'add') 
+        ? `${txType} (${dueCurrency === 'INR' ? 'Rupees' : 'Qatar Riyal'})` 
         : (selectedAccount === 'upi' ? `UPI (${accounts.find(a => a.id === upiAccount)?.name})` : (accounts.find(a => a.id === selectedAccount)?.name || 'Cash')),
       amount: parseFloat(amount),
       status: 'Completed'
@@ -250,39 +250,45 @@ export default function Transactions() {
           }
         }
       }
-      if (addToCash && txType === 'Dues' && dueAction === 'add') {
+      if (addToCash && (txType === 'Dues' || txType === 'Debt')) {
         let selectedMode = dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)';
         if (dueDestType === 'bank' && dueDestBank) {
           const bankAcc = accounts.find(a => a.id === dueDestBank);
           if (bankAcc) selectedMode = bankAcc.name;
         }
-        const cashTx = {
-          id: Date.now() + 1,
-          date: txDate,
-          type: 'Expense',
-          category: 'Dues Given',
-          description: `Given Dues: ${finalDescription}`,
-          mode: selectedMode,
-          amount: parseFloat(amount),
-          status: 'Completed'
-        };
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cashTx)
-        });
-      } else if (addToCash && txType === 'Dues' && dueAction === 'settle') {
-        let selectedMode = dueCurrency === 'INR' ? 'Cash (Rupees)' : 'Cash (Qatar Riyal)';
-        if (dueDestType === 'bank' && dueDestBank) {
-          const bankAcc = accounts.find(a => a.id === dueDestBank);
-          if (bankAcc) selectedMode = bankAcc.name;
+
+        let cashTxType = 'Expense';
+        let cashCategory = 'General';
+        let cashDesc = finalDescription;
+
+        if (txType === 'Dues') {
+          if (dueAction === 'add') {
+            cashTxType = 'Expense';
+            cashCategory = 'Dues Given';
+            cashDesc = `Given Dues: ${finalDescription}`;
+          } else {
+            cashTxType = 'Income';
+            cashCategory = 'Dues Received';
+            cashDesc = `Received Dues: ${finalDescription}`;
+          }
+        } else if (txType === 'Debt') {
+          if (dueAction === 'add') {
+            cashTxType = 'Income';
+            cashCategory = 'Debt Taken';
+            cashDesc = `Taken Debt: ${finalDescription}`;
+          } else {
+            cashTxType = 'Expense';
+            cashCategory = 'Debt Settled';
+            cashDesc = `Settled Debt: ${finalDescription}`;
+          }
         }
+
         const cashTx = {
           id: Date.now() + 1,
           date: txDate,
-          type: 'Income',
-          category: 'Dues Received',
-          description: `Received Dues: ${finalDescription}`,
+          type: cashTxType,
+          category: cashCategory,
+          description: cashDesc,
           mode: selectedMode,
           amount: parseFloat(amount),
           status: 'Completed'
@@ -329,7 +335,7 @@ export default function Transactions() {
     setDueCurrency(tx.dueCurrency || 'INR');
     setIncludeInBalance(tx.includeInBalance === 1 || tx.includeInBalance === true);
     
-    if (tx.type !== 'Dues' || tx.dueAction === 'settle') {
+    if ((tx.type !== 'Dues' && tx.type !== 'Debt') || tx.dueAction === 'settle') {
       if (tx.mode && tx.mode.startsWith('UPI (')) {
         setSelectedAccount('upi');
         const upiBankName = tx.mode.match(/UPI \((.*)\)/)?.[1];
@@ -403,7 +409,10 @@ export default function Transactions() {
   const getDebtBalance = (currency) => {
     return transactions
       .filter(tx => tx.type === 'Debt' && (currency === 'QAR' ? (tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR') : !(tx.mode?.includes('Qatar') || tx.dueCurrency === 'QAR')))
-      .reduce((acc, tx) => acc + tx.amount, 0);
+      .reduce((acc, tx) => {
+        if (tx.dueAction === 'settle') return acc - tx.amount;
+        return acc + tx.amount;
+      }, 0);
   };
 
   return (
@@ -726,7 +735,7 @@ export default function Transactions() {
                 />
               </div>
 
-              {!(txType === 'Dues' && dueAction === 'add') && (
+              {!((txType === 'Dues' || txType === 'Debt') && dueAction === 'add') && (
                 <div>
                   <label className="block text-sm font-medium mb-2 opacity-80">
                     {txType === 'Transfer' ? 'From Account' : 'Account / Mode (For Settlement)'}
@@ -1026,10 +1035,10 @@ export default function Transactions() {
                 </div>
               )}
 
-              {txType === 'Dues' && (
+              {(txType === 'Dues' || txType === 'Debt') && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 opacity-80">Due Currency</label>
+                    <label className="block text-sm font-medium mb-2 opacity-80">{txType === 'Dues' ? 'Due' : 'Debt'} Currency</label>
                     <div className="flex gap-4">
                       <button 
                         onClick={() => setDueCurrency('INR')}
@@ -1051,13 +1060,13 @@ export default function Transactions() {
                       onClick={() => setDueAction('add')}
                       className={`flex-1 py-3 rounded-xl border font-medium transition-colors ${dueAction === 'add' ? 'border-orange-500 bg-orange-500/10 text-orange-500' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}`}
                     >
-                      + Add to Dues
+                      + Add to {txType}
                     </button>
                     <button 
                       onClick={() => setDueAction('settle')}
                       className={`flex-1 py-3 rounded-xl border font-medium transition-colors ${dueAction === 'settle' ? 'border-green-500 bg-green-500/10 text-green-500' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5 opacity-70'}`}
                     >
-                      - Settle Dues
+                      - Settle {txType}
                     </button>
                   </div>
 
@@ -1065,7 +1074,7 @@ export default function Transactions() {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <label className="text-sm font-bold block">Include in Total Balance</label>
-                        <p className="text-xs opacity-60">Should this due count towards your available balance?</p>
+                        <p className="text-xs opacity-60">Should this {txType.toLowerCase()} count towards your available balance?</p>
                       </div>
                       <button 
                         onClick={() => setIncludeInBalance(!includeInBalance)}
@@ -1078,10 +1087,14 @@ export default function Transactions() {
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <label className="text-sm font-bold block">
-                          {dueAction === 'add' ? 'Auto-Add Income Transaction?' : 'Auto-Add Expense Transaction?'}
+                          {dueAction === 'add' 
+                            ? (txType === 'Dues' ? 'Auto-Add Expense Transaction?' : 'Auto-Add Income Transaction?') 
+                            : (txType === 'Dues' ? 'Auto-Add Income Transaction?' : 'Auto-Add Expense Transaction?')}
                         </label>
                         <p className="text-xs opacity-60">
-                          {dueAction === 'add' ? 'Automatically add this amount to an account' : 'Automatically deduct this amount from an account'}
+                          {dueAction === 'add' 
+                            ? (txType === 'Dues' ? 'Automatically deduct this amount from an account' : 'Automatically add this amount to an account') 
+                            : (txType === 'Dues' ? 'Automatically add this amount to an account' : 'Automatically deduct this amount from an account')}
                         </p>
                       </div>
                       <button 
