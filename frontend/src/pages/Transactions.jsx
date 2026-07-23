@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Edit2, Trash2, X, Wallet, AlertCircle, DollarSign, Building2, CloudOff } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpRight, ArrowDownRight, Edit2, Trash2, X, Wallet, AlertCircle, DollarSign, Building2, CloudOff, TrendingUp } from 'lucide-react';
 
 const socket = io(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
 
@@ -114,7 +114,8 @@ export default function Transactions() {
     { id: 'cash_inr', name: 'Cash (Rupees)', icon: <DollarSign size={16} /> },
     { id: 'cash_qar', name: 'Cash (Qatar Riyal)', icon: <DollarSign size={16} /> },
     { id: 'dues_inr', name: 'Dues (Rupees)', icon: <AlertCircle size={16} className="text-orange-500" /> },
-    { id: 'dues_qar', name: 'Dues (Qatar Riyal)', icon: <AlertCircle size={16} className="text-orange-500" /> }
+    { id: 'dues_qar', name: 'Dues (Qatar Riyal)', icon: <AlertCircle size={16} className="text-orange-500" /> },
+    { id: 'investment', name: 'Investment', icon: <TrendingUp size={16} className="text-blue-500" /> }
   ];
 
   const handleSaveTransaction = () => {
@@ -224,6 +225,21 @@ export default function Transactions() {
           return [savedTx, ...prev];
         }
       });
+
+      if (savedTx.mode === 'Investment') {
+        const invData = {
+          amount: parseFloat(amount),
+          currency: (txType === 'Debt' || txType === 'Dues') ? dueCurrency : 'INR',
+          type: 'OTHER',
+          completion_date: '',
+          sourceAccount: 'none'
+        };
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/investments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(invData)
+        }).catch(err => console.error('Failed to auto-add investment:', err));
+      }
 
       // Budget Reminder Logic for Needs
       if (txType === 'Expense' && ['Housing & Rent', 'Food & Dining', 'Utilities', 'Healthcare'].includes(finalCategory)) {
