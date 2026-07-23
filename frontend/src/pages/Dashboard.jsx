@@ -139,10 +139,14 @@ export default function Dashboard() {
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-      return acc - tx.amount; // fallback
+    if (tx.type === 'Debt') {
+      if (tx.dueAction === 'settle') {
+        return tx.includeInBalance ? acc + tx.amount : acc;
+      }
+      if (tx.dueAction === 'add' && tx.includeInBalance === false) {
+        return acc;
+      }
+      return acc - tx.amount; // legacy or includeInBalance=true
     }
     return acc;
   }, 0);
@@ -152,10 +156,14 @@ export default function Dashboard() {
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt' && tx.includeInBalance) {
-      if (tx.dueAction === 'add') return acc - tx.amount;
-      if (tx.dueAction === 'settle') return acc + tx.amount;
-      return acc - tx.amount; // fallback
+    if (tx.type === 'Debt') {
+      if (tx.dueAction === 'settle') {
+        return tx.includeInBalance ? acc + tx.amount : acc;
+      }
+      if (tx.dueAction === 'add' && tx.includeInBalance === false) {
+        return acc;
+      }
+      return acc - tx.amount; // legacy or includeInBalance=true
     }
     return acc;
   }, 0);
