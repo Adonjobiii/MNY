@@ -120,9 +120,8 @@ export default function Dashboard() {
     return transactions
       .filter(tx => tx.type === 'Debt' && (currency === 'QAR' ? isQAR(tx) : !isQAR(tx)))
       .reduce((acc, tx) => {
-        if (tx.dueAction === 'add') return acc + tx.amount;
         if (tx.dueAction === 'settle') return acc - tx.amount;
-        return acc;
+        return acc + tx.amount; // Default to add for legacy transactions
       }, 0);
   };
 
@@ -140,7 +139,7 @@ export default function Dashboard() {
   const totalBalanceINR = filteredTransactions.filter(t => !isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt') {
+    if (tx.type === 'Debt' && tx.includeInBalance) {
       if (tx.dueAction === 'add') return acc - tx.amount;
       if (tx.dueAction === 'settle') return acc + tx.amount;
       return acc - tx.amount; // fallback
@@ -153,7 +152,7 @@ export default function Dashboard() {
   const totalBalanceQAR = filteredTransactions.filter(t => isQAR(t)).reduce((acc, tx) => {
     if (tx.type === 'Income') return acc + tx.amount;
     if (tx.type === 'Expense') return acc - tx.amount;
-    if (tx.type === 'Debt') {
+    if (tx.type === 'Debt' && tx.includeInBalance) {
       if (tx.dueAction === 'add') return acc - tx.amount;
       if (tx.dueAction === 'settle') return acc + tx.amount;
       return acc - tx.amount; // fallback

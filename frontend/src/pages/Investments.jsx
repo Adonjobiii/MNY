@@ -9,7 +9,8 @@ export default function Investments() {
     completion_date: '',
     type: 'SIP',
     currency: 'INR',
-    sourceAccount: 'none'
+    sourceAccount: 'none',
+    includeInBalance: false
   });
 
   const accounts = [
@@ -53,8 +54,11 @@ export default function Investments() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -83,7 +87,7 @@ export default function Investments() {
               type: 'Debt',
               dueAction: 'settle',
               dueCurrency: isQarDebt ? 'QAR' : 'INR',
-              includeInBalance: true,
+              includeInBalance: formData.includeInBalance,
               category: 'Debt Settled',
               description: `Investment: ${formData.type}`,
               toWhom: 'Investment',
@@ -120,7 +124,7 @@ export default function Investments() {
         }
 
         setShowAddForm(false);
-        setFormData({ amount: '', completion_date: '', type: 'SIP', currency: 'INR', sourceAccount: 'none' });
+        setFormData({ amount: '', completion_date: '', type: 'SIP', currency: 'INR', sourceAccount: 'none', includeInBalance: false });
       })
       .catch(err => console.error('Failed to add investment:', err));
   };
@@ -218,6 +222,21 @@ export default function Investments() {
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
                 ))}
               </select>
+              {formData.sourceAccount.startsWith('debt_') && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="includeInBalance"
+                    name="includeInBalance"
+                    checked={formData.includeInBalance}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-blue-600 bg-[var(--background)] border-[var(--border)] rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="includeInBalance" className="text-sm font-medium opacity-70">
+                    Include in Total Balance
+                  </label>
+                </div>
+              )}
             </div>
 
             <div>
