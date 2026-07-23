@@ -18,7 +18,9 @@ export default function Investments() {
     { id: 'cash_qar', name: 'Cash in Hand (Qatar Riyal)' },
     { id: 'icici', name: 'ICICI Bank' },
     { id: 'sib', name: 'South Indian Bank' },
-    { id: 'qatar_bank', name: 'Qatar Bank' }
+    { id: 'qatar_bank', name: 'Qatar Bank' },
+    { id: 'debt_inr', name: 'Debt (Rupees)' },
+    { id: 'debt_qar', name: 'Debt (Qatar Riyal)' }
   ];
 
   const fetchInvestments = () => {
@@ -70,20 +72,41 @@ export default function Investments() {
         setInvestments(prev => [newInv, ...prev]);
         
         if (formData.sourceAccount !== 'none') {
-          const selectedAcc = accounts.find(a => a.id === formData.sourceAccount);
-          const accName = selectedAcc ? selectedAcc.name : 'Cash';
-          const modeName = accName.replace('Cash in Hand', 'Cash');
-          
-          const cashTx = {
-            id: Date.now() + 1,
-            date: new Date().toISOString().split('T')[0],
-            type: 'Expense',
-            category: 'Investments',
-            description: `Investment: ${formData.type}`,
-            mode: modeName,
-            amount: Number(formData.amount),
-            status: 'Completed'
-          };
+          const isDebt = formData.sourceAccount.startsWith('debt_');
+          const isQarDebt = formData.sourceAccount === 'debt_qar';
+
+          let cashTx;
+          if (isDebt) {
+            cashTx = {
+              id: Date.now() + 1,
+              date: new Date().toISOString().split('T')[0],
+              type: 'Debt',
+              dueAction: 'add',
+              dueCurrency: isQarDebt ? 'QAR' : 'INR',
+              includeInBalance: true,
+              category: 'Debt',
+              description: `Investment: ${formData.type}`,
+              toWhom: 'Investment',
+              mode: `Debt (${isQarDebt ? 'Qatar Riyal' : 'Rupees'})`,
+              amount: Number(formData.amount),
+              status: 'Completed'
+            };
+          } else {
+            const selectedAcc = accounts.find(a => a.id === formData.sourceAccount);
+            const accName = selectedAcc ? selectedAcc.name : 'Cash';
+            const modeName = accName.replace('Cash in Hand', 'Cash');
+            
+            cashTx = {
+              id: Date.now() + 1,
+              date: new Date().toISOString().split('T')[0],
+              type: 'Expense',
+              category: 'Investments',
+              description: `Investment: ${formData.type}`,
+              mode: modeName,
+              amount: Number(formData.amount),
+              status: 'Completed'
+            };
+          }
           
           try {
             await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/transactions`, {
