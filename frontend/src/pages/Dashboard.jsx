@@ -97,7 +97,15 @@ export default function Dashboard() {
       .reduce((acc, tx) => {
         if (tx.type === 'Income' && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) return acc + tx.amount;
         if (tx.type === 'Expense' && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) return acc - tx.amount;
-        if (tx.type === 'Debt') return acc - tx.amount;
+        if (tx.type === 'Debt') {
+          if (tx.dueAction === 'settle') {
+            return tx.includeInBalance ? acc + tx.amount : acc;
+          }
+          if (tx.dueAction === 'add' && tx.includeInBalance === false) {
+            return acc;
+          }
+          return acc - tx.amount; // legacy or includeInBalance=true
+        }
         if (tx.type === 'Dues' && tx.includeInBalance && (tx.mode === accountName || tx.mode === `UPI (${accountName})`)) {
           if (tx.dueAction === 'add') return acc - tx.amount;
           if (tx.dueAction === 'settle') return acc + tx.amount;
